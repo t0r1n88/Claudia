@@ -1,5 +1,8 @@
 from aiogram import types,Dispatcher
 from create_bot import bot, dp
+from keyboards import kb_client
+from aiogram.types import ReplyKeyboardRemove
+
 
 
 """*********************************КЛИЕНТСКАЯ ЧАСТЬ*************************************"""
@@ -13,7 +16,7 @@ async def command_start(message: types.Message):
     # Получаем айди пользователя и отправляем ему сообщение
     try:
         await bot.send_message(message.from_user.id,
-                               'Добро пожаловать в Центр опережающей профессиональной подготовки Республики Бурятия')
+                               'Добро пожаловать в Центр опережающей профессиональной подготовки Республики Бурятия',reply_markup=kb_client)
         # Удаляем сообщение чтобы не спамить в группе
         await message.delete()
 
