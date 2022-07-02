@@ -14,9 +14,8 @@ async def on_startup(_):
 # Запускаем функции из модулей client,admin,other
 
 client.register_handlers_client(dp)
+admin.register_handlers_admin(dp)
 other.register_handlers_other(dp)
-
-
 
 # Запускаем бота
 # skip_updates=True - для того чтобы бот не отвечал на сообщение пришедшие когда он бы не в онлайн

@@ -1,8 +1,8 @@
 from aiogram.types import ReplyKeyboardMarkup,KeyboardButton
 
 # Создаем кнопки
-b1 = KeyboardButton('/Контакты')
-b2 = KeyboardButton('/Режим_работы')
+b1 = KeyboardButton('Контакты')
+b2 = KeyboardButton('Режим_работы')
 # Кнопки исключения потому что текст кнопок может быть любой, то есть не соответствовать команде
 # Отправляет боту ваш телефон
 b3 = KeyboardButton('Поделиться номером',request_contact=True)
