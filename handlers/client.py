@@ -1,12 +1,12 @@
 from aiogram import types,Dispatcher
 from create_bot import bot, dp
 from keyboards import kb_client
+from data_base import sqlite_db
 from aiogram.types import ReplyKeyboardRemove
 
 
 
 """*********************************КЛИЕНТСКАЯ ЧАСТЬ*************************************"""
-
 
 # Обработчик команд
 # @dp.message_handler(commands=['start', 'help'])
@@ -48,6 +48,11 @@ async def adress_copp(message: types.Message):
     except:
         await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
+#
+async def course_menu(message:types.Message):
+    await sqlite_db.sql_read_course(message)
+
+
 def register_handlers_client(dp :Dispatcher):
     """
     Регистрируем хэндлеры клиента чтобы не писать над каждой функцией декоратор с командами
@@ -55,3 +60,4 @@ def register_handlers_client(dp :Dispatcher):
     dp.register_message_handler(command_start,commands=['start','help'])
     dp.register_message_handler(working_regime,commands=['Режим_работы'])
     dp.register_message_handler(adress_copp,commands=['Контакты'])
+    dp.register_message_handler(course_menu,commands=['Текущие_курсы'])

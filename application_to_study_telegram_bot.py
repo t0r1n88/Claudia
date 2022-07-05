@@ -2,6 +2,7 @@
 from aiogram.utils import executor
 from create_bot import dp
 from handlers import client,admin,other
+from data_base import sqlite_db
 
 
 async def on_startup(_):
@@ -9,6 +10,8 @@ async def on_startup(_):
     Функция выполняющая при старте бота, для подключения к базе данных
 
     """
+    sqlite_db.sql_start()
+
     print('Бот вышел в онлайн')
 
 # Запускаем функции из модулей client,admin,other

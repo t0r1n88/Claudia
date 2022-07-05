@@ -4,6 +4,8 @@ from create_bot import dp,bot
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher.filters import Text
+from data_base import sqlite_db
+from keyboards import admin_kb
 
 # Создаем константу
 ID = None
@@ -25,7 +27,7 @@ async def make_changes_command(message:types.Message):
     # Получаем айди пользователя
     ID = message.from_user.id
     # Отправляем сообщение через бота в личку пользователю
-    await bot.send_message(message.from_user.id, 'Что прикажете повелитель?')
+    await bot.send_message(message.from_user.id, 'Что прикажете повелитель?',reply_markup=admin_kb.kb_admin_course)
     await message.delete()
 
 
@@ -63,7 +65,7 @@ async def load_photo_course(message:types.Message,state: FSMContext):
     if message.from_user.id == ID:
         async with state.proxy() as data:
             # Через контекстный менеджер получаем записываем в словарь  айди загруженной картинки
-            data['photo_course'] = message.photo[0].file_id
+            data['img_course'] = message.photo[0].file_id
             # Переводим машину состояний в следующую фазу
         await FSMAdmin.next()
         # Сообщаем пользователю что нужно ввести название курса
@@ -106,18 +108,19 @@ async def load_how_sign_course(message:types.Message,state:FSMContext):
             data['how_sign_course'] = message.text
         # Заканчиваем переходы по состояниям
         # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
-        async with state.proxy() as data:
-            await message.reply(str(data))
-        await state.finish()
+        await sqlite_db.sql_add_course(state)
+        await message.answer('Данные курса добавлены')
 
+
+        await state.finish()
 
 
 # регистрируем хендлеры
 def register_handlers_admin(dp:Dispatcher):
     dp.register_message_handler(load_course,commands='Загрузить',state=None)
-    dp.register_message_handler(load_photo_course,content_types=['photo'],state=FSMAdmin.photo_course)
     dp.register_message_handler(cancel_handler_load_course, state="*", commands='отмена')
     dp.register_message_handler(cancel_handler_load_course, Text(equals='отмена', ignore_case=True), state="*")
+    dp.register_message_handler(load_photo_course,content_types=['photo'],state=FSMAdmin.photo_course)
     dp.register_message_handler(load_name_course,state=FSMAdmin.name_course)
     dp.register_message_handler(load_description_course,state=FSMAdmin.description_course)
     dp.register_message_handler(load_how_sign_course,state=FSMAdmin.how_sign_course)
