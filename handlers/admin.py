@@ -129,7 +129,7 @@ async def del_course_callback_run(callback_query: types.CallbackQuery):
     deleted_course = callback_query.data.replace('del ', '')
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
     await sqlite_db.sql_delete_course(deleted_course)
-    await callback_query.answer(f'Курс {deleted_course} удален', show_alert=True)
+    await callback_query.answer(f'Курс  удален', show_alert=True)
 
 
 async def delete_course(message: types.Message):
@@ -144,11 +144,11 @@ async def delete_course(message: types.Message):
             # Создаем инлайн кнопку
             # inline_del_course_kb = InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}'))
             # Отправляем данные курса из таблицы
-            await bot.send_photo(message.from_user.id, course[0],
-                                 f'{course[1]}\nОписание курса: {course[2]}\n Условия записи на курс: {course[3]}')
+            await bot.send_photo(message.from_user.id, course[1],
+                                 f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
             # Отправляем инлайн кнопку вместе с сообщением
             # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
-            await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
+            await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
 
 
 # регистрируем хендлеры

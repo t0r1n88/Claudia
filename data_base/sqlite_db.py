@@ -18,7 +18,7 @@ def sql_start():
     # not EXISTS если таблица уже существует то ничего не делаем
     # img картинку мы храним в виде file.id хранимого на серверах телеграмма
     base.execute(
-        'CREATE TABLE IF NOT EXISTS courses(img TEXT, name_course TEXT PRIMARY KEY, description_course TEXT, how_sign_course TEXT)')
+        'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT, name_course TEXT, description_course TEXT, how_sign_course TEXT)')
     # Сохраняем эти изменения
     base.commit()
 
@@ -31,7 +31,7 @@ async def sql_add_course(state):
     """
     async with state.proxy() as data:
         # Вставляем данные в таблицу
-        cur.execute('INSERT INTO courses VALUES (?,?,?,?)', tuple(data.values()))
+        cur.execute('INSERT INTO courses(img,name_course,description_course,how_sign_course) VALUES (?,?,?,?)', tuple(data.values()))
         base.commit()
 
 
@@ -40,7 +40,7 @@ async def sql_read_course(message):
     for row in cur.execute('SELECT * FROM courses').fetchall():
         # Формируем сообщение пользователю. Отправляем данные из таблицы
         # row[0] это айди картинки на сервере телеграмма
-        await bot.send_photo(message.from_user.id, row[0],f'{row[1]}\nОписание курса: {row[2]}\n Условия записи на курс: {row[3]}')
+        await bot.send_photo(message.from_user.id, row[1],f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
 
 async def sql_read_all_courses():
     """
@@ -52,5 +52,5 @@ async def sql_delete_course(name_course):
     """
     Функция для удаления курса из базы данных
     """
-    cur.execute('DELETE FROM courses WHERE name_course == ?',(name_course,))
+    cur.execute('DELETE FROM courses WHERE course_id == ?',(name_course,))
     base.commit()
