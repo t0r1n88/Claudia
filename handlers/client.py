@@ -52,6 +52,24 @@ async def adress_copp(message: types.Message):
 async def course_menu(message:types.Message):
     await sqlite_db.sql_read_course(message)
 
+async def get_location(message:types.Message):
+    """
+    Функция для получения данных геолокации
+    """
+    if message.location is not None:
+        await bot.send_message(message.from_user.id,message.location)
+        await bot.send_message(message.from_user.id,f'Широта {message.location.latitude}\n Долгота {message.location.longitude}')
+    else:
+        await bot.send_message(message.from_user.id,'Возникла проблема с обработкой геолокации. Попробуйте позже')
+
+async def get_contact(message:types.Message):
+    if message.from_user.id == message.contact.user_id:
+        await bot.send_message(message.from_user.id,message.contact.phone_number)
+        await bot.send_message(message.from_user.id,message.contact.first_name)
+    else:
+        await bot.send_message(message.from_user.id,' Отправьте СВОИ данные!')
+
+
 
 def register_handlers_client(dp :Dispatcher):
     """
@@ -61,3 +79,5 @@ def register_handlers_client(dp :Dispatcher):
     dp.register_message_handler(working_regime,commands=['Режим_работы'])
     dp.register_message_handler(adress_copp,commands=['Контакты'])
     dp.register_message_handler(course_menu,commands=['Текущие_курсы'])
+    dp.register_message_handler(get_location,content_types=['location'])
+    dp.register_message_handler(get_contact,content_types=['contact'])
