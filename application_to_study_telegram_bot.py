@@ -4,6 +4,8 @@ from create_bot import dp
 from handlers import client,admin,other
 from data_base import sqlite_db
 
+# Данный бот сделан по примеру курса https://www.youtube.com/playlist?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
+# Очень понятное объяснение
 
 async def on_startup(_):
     """

@@ -41,3 +41,16 @@ async def sql_read_course(message):
         # Формируем сообщение пользователю. Отправляем данные из таблицы
         # row[0] это айди картинки на сервере телеграмма
         await bot.send_photo(message.from_user.id, row[0],f'{row[1]}\nОписание курса: {row[2]}\n Условия записи на курс: {row[3]}')
+
+async def sql_read_all_courses():
+    """
+    Функция для получени из базы данных всех текущих курсов
+    """
+    return cur.execute('SELECT * FROM courses').fetchall()
+
+async def sql_delete_course(name_course):
+    """
+    Функция для удаления курса из базы данных
+    """
+    cur.execute('DELETE FROM courses WHERE name_course == ?',(name_course,))
+    base.commit()

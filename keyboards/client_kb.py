@@ -11,7 +11,7 @@ b4 = KeyboardButton('Отправить где я',request_location=True)
 b5 = KeyboardButton('/Текущие_курсы')
 # Создаем клавиатуру
 #one_time_keyboard=True аргумент овечающий за то что полсе использования клавиатура исчезает.Ее можно повторно вызвать нажав иконку
-kb_client = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=True)
+kb_client = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
 # Добавление кнопок в стобец
 # kb_client.add(b1).add(b2)
 # #Добавление кнопки
