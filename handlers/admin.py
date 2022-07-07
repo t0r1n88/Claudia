@@ -21,6 +21,8 @@ class FSMAdmin(StatesGroup):
     name_course = State()
     description_course = State()
     how_sign_course = State()
+    event_mark = State()
+
 
 
 # проверяем пользователя на права администратора в группе
@@ -58,7 +60,7 @@ async def cancel_handler_load_course(message: types.Message, state: FSMContext):
     if current_state is None:
         return
     await state.finish()
-    await message.reply('Загрузка курса отменена')
+    await message.reply('Загрузка курса(события) отменена')
 
 
 # получаем ответ пользователя и записываем в словарь
@@ -113,13 +115,32 @@ async def load_how_sign_course(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             # Извлекаем из сообщения атрибут text
             data['how_sign_course'] = message.text
+        # Переводим машину в следующее состояние
+        await FSMAdmin.next()
+        # Сообщаем пользователю что нужно ввести сведения о том кто может записаться и как записаться
+        await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
+
+
+# Получаем от пользователя явлется ли курс мероприятием
+async def load_event_mark_course(message:types.Message,state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь является ли курс мероприятием
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Проверяем на соответсвие да или нет.Если подходит то
+            check_message_text = message.text.lower()
+            if check_message_text == 'да' or check_message_text == 'нет':
+                data['event_mark'] = message.text
+            else:
+                await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
+
+
         # Заканчиваем переходы по состояниям
         # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
         await sqlite_db.sql_add_course(state)
-        await message.answer('Данные курса добавлены')
+        await message.answer('Данные курса(мероприятия) добавлены')
 
         await state.finish()
-
 
 # Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с del то функция выполнится
 # Более понятное объяснение https://youtu.be/gpCIfQUbYlY?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
@@ -160,5 +181,6 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_name_course, state=FSMAdmin.name_course)
     dp.register_message_handler(load_description_course, state=FSMAdmin.description_course)
     dp.register_message_handler(load_how_sign_course, state=FSMAdmin.how_sign_course)
+    dp.register_message_handler(load_event_mark_course,state=FSMAdmin.event_mark)
     dp.register_message_handler(delete_course, commands=['Удалить'])
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)

@@ -1,12 +1,13 @@
 import sqlite3 as sq
 from create_bot import bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 # Создаем функцию для старта базы данных
 def sql_start():
     global base, cur
     # Подключаемся к базе данных.Если такой базы нет  то создаем Бд с таким названием
-    base = sq.connect('copp.db')
+    base = sq.connect('copp_courses.db')
     # Создаем объект для управления базой данных
     cur = base.cursor()
     # Выводим сообщение в терминал если все прошло хорошо и к базе удалось подключитья
@@ -18,7 +19,8 @@ def sql_start():
     # not EXISTS если таблица уже существует то ничего не делаем
     # img картинку мы храним в виде file.id хранимого на серверах телеграмма
     base.execute(
-        'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT, name_course TEXT, description_course TEXT, how_sign_course TEXT)')
+        'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT,'
+        ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
     # Сохраняем эти изменения
     base.commit()
 
@@ -31,7 +33,9 @@ async def sql_add_course(state):
     """
     async with state.proxy() as data:
         # Вставляем данные в таблицу
-        cur.execute('INSERT INTO courses(img,name_course,description_course,how_sign_course) VALUES (?,?,?,?)', tuple(data.values()))
+        cur.execute(
+            'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark) VALUES (?,?,?,?,?)',
+            tuple(data.values()))
         base.commit()
 
 
@@ -40,7 +44,20 @@ async def sql_read_course(message):
     for row in cur.execute('SELECT * FROM courses').fetchall():
         # Формируем сообщение пользователю. Отправляем данные из таблицы
         # row[0] это айди картинки на сервере телеграмма
-        await bot.send_photo(message.from_user.id, row[1],f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
+        # Проверяем признак event_mark, т.е. мероприятие это или нет.Если да то в дополнении к обычным данным
+        # Отправляем пользователю инлайн клавиатуру
+        if row[5] == 'нет':
+            await bot.send_photo(message.from_user.id, row[1],
+                                 f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
+        else:
+            # Создаем кнопки
+            inline_reg__event_button =InlineKeyboardButton(f'Принять участие',callback_data=f'reg {row[1]}')
+            inline_confirmed__event_button =InlineKeyboardButton(f'Подтвердить присутствие на мероприятии',callback_data=f'conf {row[1]}')
+            inline_event_kb = InlineKeyboardMarkup().row(inline_reg__event_button,inline_confirmed__event_button)
+            await bot.send_photo(message.from_user.id, row[1],
+                                 f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
+                                 reply_markup=inline_event_kb)
+
 
 async def sql_read_all_courses():
     """
@@ -48,9 +65,10 @@ async def sql_read_all_courses():
     """
     return cur.execute('SELECT * FROM courses').fetchall()
 
+
 async def sql_delete_course(name_course):
     """
     Функция для удаления курса из базы данных
     """
-    cur.execute('DELETE FROM courses WHERE course_id == ?',(name_course,))
+    cur.execute('DELETE FROM courses WHERE course_id == ?', (name_course,))
     base.commit()
