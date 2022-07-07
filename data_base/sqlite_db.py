@@ -7,7 +7,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def sql_start():
     global base, cur
     # Подключаемся к базе данных.Если такой базы нет  то создаем Бд с таким названием
-    base = sq.connect('copp_courses.db')
+    base = sq.connect('copp.db')
     # Создаем объект для управления базой данных
     cur = base.cursor()
     # Выводим сообщение в терминал если все прошло хорошо и к базе удалось подключитья
@@ -22,6 +22,9 @@ def sql_start():
         'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT,'
         ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
     # Сохраняем эти изменения
+    # Создаем таблицу по учету участников мероприятия если ее нет
+    base.execute('CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'
+                 'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
     base.commit()
 
 
@@ -51,9 +54,10 @@ async def sql_read_course(message):
                                  f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
         else:
             # Создаем кнопки
-            inline_reg__event_button =InlineKeyboardButton(f'Принять участие',callback_data=f'reg {row[1]}')
-            inline_confirmed__event_button =InlineKeyboardButton(f'Подтвердить присутствие на мероприятии',callback_data=f'conf {row[1]}')
-            inline_event_kb = InlineKeyboardMarkup().row(inline_reg__event_button,inline_confirmed__event_button)
+            inline_reg__event_button =InlineKeyboardButton(f'^^^Принять участие^^^',callback_data=f'reg {row[0]}')
+            inline_confirmed__event_button =InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',callback_data=f'conf {row[0]}')
+            # inline_event_kb = InlineKeyboardMarkup().row(inline_reg__event_button,inline_confirmed__event_button)
+            inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button)
             await bot.send_photo(message.from_user.id, row[1],
                                  f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
                                  reply_markup=inline_event_kb)
@@ -65,10 +69,18 @@ async def sql_read_all_courses():
     """
     return cur.execute('SELECT * FROM courses').fetchall()
 
+async def sql_read_name_course(id_course):
+    """
+    Функция для получения названия курса по айди курса
+    """
+    return cur.execute('SELECT name_course FROM courses WHERE course_id == ? ',(id_course,)).fetchone()
 
-async def sql_delete_course(name_course):
+
+async def sql_delete_course(id_course):
     """
     Функция для удаления курса из базы данных
     """
-    cur.execute('DELETE FROM courses WHERE course_id == ?', (name_course,))
+    cur.execute('DELETE FROM courses WHERE course_id == ?', (id_course,))
     base.commit()
+
+
