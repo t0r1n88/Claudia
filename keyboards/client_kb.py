@@ -24,5 +24,6 @@ kb_client.add(btn_contacts_copp).add(btn_work_regime).row(btn_share_contact, btn
 kb_client_reg = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
 kb_client_reg.add(btn_share_contact)
 
-
+kb_client_confirm_presense = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
+kb_client_confirm_presense.add(btn_share_location)
 

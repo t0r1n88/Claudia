@@ -21,7 +21,15 @@ class FSMReg_event(StatesGroup):
     # Шаг c получением контакта пользователя
     contact = State()
 
+class FSMConfirm_presense(StatesGroup):
+    """
+    Класс для создания машины состояний для отправки геометки. ТАкое решение выбрано чтобы было проще воспользоваться кнопкой request_location
 
+    """
+    # Шаг с получение названия мероприятия для последующего запроса
+    name_event = State()
+    # Шаг с получением геолокации
+    location = State()
 
 
 # Обработчик команд
@@ -90,23 +98,42 @@ async def get_contact(message: types.Message):
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
 
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('conf '))
+async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state:FSMContext):
+    """
+    Функция для отправки геометки для подтверждения посещения мероприятия
+    """
+    # Получаем айди мероприятия на которое происходит записи
+    id_event = callback_query.data.split()[1]
+    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # Распаковываем кортеж
+    name_event = tuple_name_event[0]
+    await FSMConfirm_presense.name_event.set()
+    async with state.proxy() as data:
+        data['name_event'] = name_event
 
-# # query_handlers для записи на мероприятие и подтверждения участия
-# @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
-# async def sign_event_callback_run(callback_query: types.CallbackQuery):
-#     # Получаем айди мероприятия на которое происходит записи
-#     id_event = callback_query.data.split()[1]
-#     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-#     tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-#     # Распаковываем кортеж
-#     name_event = tuple_name_event[0]
-#     # переводим машину состояний в первую стадию.получение контакта
-#     await FSMReg_event.contact.set()
-#     # Пишем сообщение пользователю ,что ему нужно загрузить свой контакт
-#     await callback_query.message.reply('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',reply_markup=keyboards.client_kb.kb_client_reg)
+    await FSMConfirm_presense.next()
+    await callback_query.message.reply(
+        'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
+        reply_markup=keyboards.client_kb.kb_client_confirm_presense)
+
+async def confirm_presense(message:types.Message,state:FSMContext):
+    """
+    Функция для получения данных геолокации
+    """
+    async with state.proxy() as data:
+        data['id_participant'] = message.from_user.id
+        data['latitude'] = message.location.latitude
+        data['longitude'] = message.location.longitude
+        data['event_mark'] = message.date
+    # Обновляем данные в таблице
+    await sqlite_db.sql_confirm_presense_on_location(state)
+    await state.finish()
+    await message.answer(f'Подтверждение вашего присутствия на {data["name_event"]} принято', reply_markup=keyboards.client_kb.kb_client)
+
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
-
 async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
     # Получаем айди мероприятия на которое происходит записи
     id_event = callback_query.data.split()[1]
@@ -121,8 +148,6 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
     await callback_query.message.reply(
         'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',
         reply_markup=keyboards.client_kb.kb_client_reg)
-
-
 
 async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
     # получаем текущее состояние машины состояний
@@ -161,6 +186,8 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(cancel_handler_reg_event, state="*", commands='отмена')
     dp.register_message_handler(cancel_handler_reg_event, Text(equals='отмена', ignore_case=True), state="*")
     dp.register_message_handler(sign_event_callback_run,state=FSMReg_event.name_event)
+    dp.register_message_handler(confirm_presence_callback_run,state=FSMConfirm_presense.name_event)
+    dp.register_message_handler(confirm_presense,content_types=['location'],state=FSMConfirm_presense.location)
     dp.register_message_handler(sign_event_contact,content_types=['contact'],state=FSMReg_event.contact)
     dp.register_message_handler(working_regime, commands=['Режим_работы'])
     dp.register_message_handler(adress_copp, commands=['Контакты'])

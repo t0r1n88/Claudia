@@ -25,6 +25,7 @@ def sql_start():
     # Создаем таблицу по учету участников мероприятия если ее нет
     base.execute('CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'
                  'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
+
     base.commit()
 
 
@@ -48,8 +49,18 @@ async def sql_add_reg_on_event(state):
         # Вставляем данные в таблицу
         cur.execute('INSERT INTO participants(name_event,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',tuple(data.values()))
         base.commit()
-
-
+async def sql_confirm_presense_on_location(state):
+    """
+    Функция для вставки значений геолокации в таблицу
+    """
+    async with state.proxy() as data:
+        # Получаем кортеж
+        temp_loc_data = tuple(data.values())
+        """
+        Порядок данных name_event,id_participant,latitude,longitude,event_mark
+        """
+    cur.execute('UPDATE participants SET latitude == ?,longitude == ?, time_mark == ?  WHERE name_event == ? and id_participant == ?',[temp_loc_data[2],temp_loc_data[3],temp_loc_data[4],temp_loc_data[0],temp_loc_data[1]])
+    base.commit()
 async def sql_read_course(message):
     # Получаем все данные из таблицы Курсы в виде списка списков
     for row in cur.execute('SELECT * FROM courses').fetchall():
