@@ -1,8 +1,13 @@
 from aiogram import types, Dispatcher
+from aiogram.dispatcher import FSMContext
+
+import keyboards.client_kb
 from create_bot import bot, dp
 from keyboards import kb_client
 from data_base import sqlite_db
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher.filters import Text
+from aiogram.types import ReplyKeyboardMarkup,KeyboardButton
 
 """*********************************КЛИЕНТСКАЯ ЧАСТЬ*************************************"""
 """************Машина состояний для регистрации на мероприятие"""
@@ -11,11 +16,10 @@ class FSMReg_event(StatesGroup):
     """
     Класс для создания машины состояний регистрации на события
     """
-    # Шаг с получением инфомрации о событии на которое происходит запись и айди пользователя
-    id_user = State()
+    # Шаг с получением названия мероприятия
+    name_event = State()
     # Шаг c получением контакта пользователя
     contact = State()
-
 
 
 
@@ -87,18 +91,65 @@ async def get_contact(message: types.Message):
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
 
 
-# query_handlers для записи на мероприятие и подтверждения участия
+# # query_handlers для записи на мероприятие и подтверждения участия
+# @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
+# async def sign_event_callback_run(callback_query: types.CallbackQuery):
+#     # Получаем айди мероприятия на которое происходит записи
+#     id_event = callback_query.data.split()[1]
+#     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+#     tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+#     # Распаковываем кортеж
+#     name_event = tuple_name_event[0]
+#     # переводим машину состояний в первую стадию.получение контакта
+#     await FSMReg_event.contact.set()
+#     # Пишем сообщение пользователю ,что ему нужно загрузить свой контакт
+#     await callback_query.message.reply('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',reply_markup=keyboards.client_kb.kb_client_reg)
+
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
-async def sign_event_callback_run(callback_query: types.CallbackQuery):
+
+async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
     # Получаем айди мероприятия на которое происходит записи
     id_event = callback_query.data.split()[1]
     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
     tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
     # Распаковываем кортеж
     name_event = tuple_name_event[0]
+    await FSMReg_event.name_event.set()
+    async with state.proxy() as data:
+        data['name_event'] = name_event
+    await FSMReg_event.next()
+    await callback_query.message.reply(
+        'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',
+        reply_markup=keyboards.client_kb.kb_client_reg)
 
 
-    await callback_query.answer(f'Вы записались на  {name_event}', show_alert=True)
+
+async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
+    # получаем текущее состояние машины состояний
+    current_state = await state.get_state()
+    # Если машина не находится в каком либо состоянии то ничего не делаем, в противном случае завершаем машину состояний
+    if current_state is None:
+        return
+    await state.finish()
+    await message.reply('Регистрация на мероприятие отменена',reply_markup=keyboards.client_kb.kb_client)
+
+async def sign_event_contact(message:types.Message,state:FSMContext):
+    if message.from_user.id == message.contact.user_id:
+        async with state.proxy() as data:
+            data['id_participant'] = message.from_user.id
+            data['phone'] = message.contact.phone_number
+            data['first_name'] = message.contact.first_name
+            data['last_name'] = message.contact.last_name
+        await sqlite_db.sql_add_reg_on_event(state)
+        await message.answer(f'Вы записаны на мероприятие {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
+
+        await state.finish()
+
+
+    else:
+        await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
+
+
 
 
 
@@ -107,8 +158,12 @@ def register_handlers_client(dp: Dispatcher):
     Регистрируем хэндлеры клиента чтобы не писать над каждой функцией декоратор с командами
     """
     dp.register_message_handler(command_start, commands=['start', 'help'])
+    dp.register_message_handler(cancel_handler_reg_event, state="*", commands='отмена')
+    dp.register_message_handler(cancel_handler_reg_event, Text(equals='отмена', ignore_case=True), state="*")
+    dp.register_message_handler(sign_event_callback_run,state=FSMReg_event.name_event)
+    dp.register_message_handler(sign_event_contact,content_types=['contact'],state=FSMReg_event.contact)
     dp.register_message_handler(working_regime, commands=['Режим_работы'])
     dp.register_message_handler(adress_copp, commands=['Контакты'])
     dp.register_message_handler(course_menu, commands=['Текущие_курсы'])
-    dp.register_message_handler(get_location, content_types=['location'])
-    dp.register_message_handler(get_contact, content_types=['contact'])
+    # dp.register_message_handler(get_location, content_types=['location'])
+

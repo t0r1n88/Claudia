@@ -131,31 +131,15 @@ async def load_event_mark_course(message:types.Message,state: FSMContext):
         if check_message_text == 'да' or check_message_text == 'нет':
             async with state.proxy() as data:
                 data['event_mark'] = check_message_text
+            # Заканчиваем переходы по состояниям
+            # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
+
             await sqlite_db.sql_add_course(state)
             await message.answer('Данные курса(мероприятия) добавлены')
 
             await state.finish()
         else:
             await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
-            # # Проверяем на соответсвие да или нет.Если подходит то
-            # check_message_text = message.text.lower()
-            # if check_message_text == 'да' or check_message_text == 'нет':
-            #     data['event_mark'] = message.text
-            #     print(state.proxy().values())
-            #     print('*********')
-            #
-            #     await sqlite_db.sql_add_course(state)
-            #     await message.answer('Данные курса(мероприятия) добавлены')
-            #
-            #     await state.finish()
-            #
-            #
-            # else:
-            #     await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
-
-
-        # Заканчиваем переходы по состояниям
-        # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
 
 
 # Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с del то функция выполнится

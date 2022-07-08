@@ -40,6 +40,14 @@ async def sql_add_course(state):
             'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark) VALUES (?,?,?,?,?)',
             tuple(data.values()))
         base.commit()
+async def sql_add_reg_on_event(state):
+    """
+    Функция для добавления в базу данных заявки на мероприятие
+    """
+    async with state.proxy() as data:
+        # Вставляем данные в таблицу
+        cur.execute('INSERT INTO participants(name_event,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',tuple(data.values()))
+        base.commit()
 
 
 async def sql_read_course(message):
