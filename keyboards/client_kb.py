@@ -12,12 +12,8 @@ current_courses = KeyboardButton('/Текущие_курсы')
 # Создаем клавиатуру
 #one_time_keyboard=True аргумент овечающий за то что полсе использования клавиатура исчезает.Ее можно повторно вызвать нажав иконку
 kb_client = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
-# Добавление кнопок в стобец
-# kb_client.add(b1).add(b2)
-# #Добавление кнопки
-# kb_client.add(b1).insert(b2)
-#Кнопки в строку
-kb_client.add(btn_contacts_copp).add(btn_work_regime).row(btn_share_contact, btn_share_location).add(current_courses)
+
+kb_client.row(btn_contacts_copp,btn_work_regime).add(current_courses)
 
 # Создаем клавиатуру для отправки своего контакта
 
