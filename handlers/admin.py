@@ -146,13 +146,10 @@ async def load_event_mark_course(message:types.Message,state: FSMContext):
 # Более понятное объяснение https://youtu.be/gpCIfQUbYlY?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('del '))
 async def del_course_callback_run(callback_query: types.CallbackQuery):
-
     deleted_course = callback_query.data.replace('del ', '')
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
     await sqlite_db.sql_delete_course(deleted_course)
     await callback_query.answer(f'Курс  удален', show_alert=True)
-
-
 
 async def delete_course(message: types.Message):
     """
@@ -172,6 +169,31 @@ async def delete_course(message: types.Message):
             # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
             await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
 
+async def report_event(message:types.Message):
+    """
+    Функция для получения списка зарегистристрировшихся и списка тех кто был на мероприятии
+    """
+    if message.from_user.id == ID:
+        # Получаем из таблицы данные всех курсов
+        all_course_data = await sqlite_db.sql_read_all_courses()
+        # Создаем инлайн клавиатуру с двумя кнопками
+        btn_inline_list_registered = InlineKeyboardButton(f'Записавшиеся',callback_data=f'get reg')
+        btn_inline_list_participants = InlineKeyboardButton(f'Присутствующие',callback_data=f'get par')
+        x = [btn_inline_list_registered,btn_inline_list_participants]
+        # inline_stat_kb = InlineKeyboardMarkup().add(btn_inline_list_registered).add(btn_inline_list_participants)
+        inline_stat_kb = InlineKeyboardMarkup().row(*x)
+        # Итерируемся по полученному списку кортежей
+        for course in all_course_data:
+            # Проверяем признак является ли курс мероприятием
+            if course[5] == 'да':
+                await bot.send_photo(message.from_user.id, course[1],
+                                     f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
+                # Отправляем инлайн кнопку вместе с сообщением
+                await bot.send_message(message.from_user.id, text='Нажмите нужную кнопку', reply_markup=inline_stat_kb)
+
+
+
+
 
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
@@ -184,4 +206,5 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_how_sign_course, state=FSMAdmin.how_sign_course)
     dp.register_message_handler(load_event_mark_course,state=FSMAdmin.event_mark)
     dp.register_message_handler(delete_course, commands=['Удалить'])
+    dp.register_message_handler(report_event,commands=['Отчетность'])
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)

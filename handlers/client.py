@@ -186,9 +186,11 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(cancel_handler_reg_event, state="*", commands='отмена')
     dp.register_message_handler(cancel_handler_reg_event, Text(equals='отмена', ignore_case=True), state="*")
     dp.register_message_handler(sign_event_callback_run,state=FSMReg_event.name_event)
+    # Машина состояний для регистрации на мероприятие
     dp.register_message_handler(confirm_presence_callback_run,state=FSMConfirm_presense.name_event)
     dp.register_message_handler(confirm_presense,content_types=['location'],state=FSMConfirm_presense.location)
     dp.register_message_handler(sign_event_contact,content_types=['contact'],state=FSMReg_event.contact)
+
     dp.register_message_handler(working_regime, commands=['Режим_работы'])
     dp.register_message_handler(adress_copp, commands=['Контакты'])
     dp.register_message_handler(course_menu, commands=['Текущие_курсы'])
