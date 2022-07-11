@@ -49,7 +49,7 @@ async def sql_check_exists_app(name_course,id_user):
     """
     Функция для проверки наличия записи в таблице
     """
-    return cur.execute('SELECT EXISTS(SELECT * from participants WHERE name_event == ? AND id_participant == ?)',(name_course,id_user))
+    return cur.execute('SELECT EXISTS (SELECT * from participants WHERE name_event == ? AND id_participant == ?)',(name_course,id_user)).fetchone()
 
 
 

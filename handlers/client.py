@@ -127,10 +127,16 @@ async def confirm_presense(message:types.Message,state:FSMContext):
         data['latitude'] = message.location.latitude
         data['longitude'] = message.location.longitude
         data['event_mark'] = message.date
-    # Обновляем данные в таблице
-    await sqlite_db.sql_confirm_presense_on_location(state)
-    await state.finish()
-    await message.answer(f'Подтверждение вашего присутствия на {data["name_event"]} принято', reply_markup=keyboards.client_kb.kb_client)
+    # Обновляем данные в таблице, если айди пользователя и имя мероприятия есть в таблице
+    # Временный костыль
+    if not await sqlite_db.sql_check_exists_app(data['name_event'], data['id_participant']) == (0,):
+        await sqlite_db.sql_confirm_presense_on_location(state)
+        await state.finish()
+        await message.answer(f'Подтверждение вашего присутствия на {data["name_event"]} принято', reply_markup=keyboards.client_kb.kb_client)
+    else:
+        await bot.send_message(message.from_user.id, f'Сначала зарегистрируйтесь на {data["name_event"]}',
+                               reply_markup=keyboards.client_kb.kb_client)
+        await state.finish()
 
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
@@ -156,7 +162,7 @@ async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
     if current_state is None:
         return
     await state.finish()
-    await message.reply('Регистрация на мероприятие отменена',reply_markup=keyboards.client_kb.kb_client)
+    await message.reply('Процесс отменен',reply_markup=keyboards.client_kb.kb_client)
 
 async def sign_event_contact(message:types.Message,state:FSMContext):
     if message.from_user.id == message.contact.user_id:
@@ -165,14 +171,15 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['phone'] = message.contact.phone_number
             data['first_name'] = message.contact.first_name
             data['last_name'] = message.contact.last_name
-        if not await sqlite_db.sql_check_exists_app(data['name_event'],data['id_participant']):
+        # Временный костыль
+        if await sqlite_db.sql_check_exists_app(data['name_event'],data['id_participant']) == (0,):
             await sqlite_db.sql_add_reg_on_event(state)
             await message.answer(f'Вы записаны на мероприятие {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
 
             await state.finish()
         else:
-            await bot.send_message(message.from_user.id,'Вы уже записаны на это мероприятие',reply_markup=keyboards.client_kb.kb_client)
-
+            await bot.send_message(message.from_user.id,f'Вы УЖЕ записаны на {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
+            await state.finish()
 
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
