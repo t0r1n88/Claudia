@@ -165,10 +165,13 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['phone'] = message.contact.phone_number
             data['first_name'] = message.contact.first_name
             data['last_name'] = message.contact.last_name
-        await sqlite_db.sql_add_reg_on_event(state)
-        await message.answer(f'Вы записаны на мероприятие {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
+        if not await sqlite_db.sql_check_exists_app(data['name_event'],data['id_participant']):
+            await sqlite_db.sql_add_reg_on_event(state)
+            await message.answer(f'Вы записаны на мероприятие {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
 
-        await state.finish()
+            await state.finish()
+        else:
+            await bot.send_message(message.from_user.id,'Вы уже записаны на это мероприятие',reply_markup=keyboards.client_kb.kb_client)
 
 
     else:

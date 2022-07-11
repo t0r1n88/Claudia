@@ -45,6 +45,13 @@ async def sql_add_course(state):
             tuple(data.values()))
         base.commit()
 
+async def sql_check_exists_app(name_course,id_user):
+    """
+    Функция для проверки наличия записи в таблице
+    """
+    return cur.execute('SELECT EXISTS(SELECT * from participants WHERE name_event == ? AND id_participant == ?)',(name_course,id_user))
+
+
 
 async def sql_add_reg_on_event(state):
     """

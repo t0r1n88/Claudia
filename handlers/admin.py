@@ -209,14 +209,6 @@ async def get_registered_callback_run(callback_query: types.CallbackQuery):
         await bot.send_document(callback_query.from_user.id,file)
     await callback_query.answer(f'Скачайте файл с данными зарегистрировавшихся', show_alert=True)
 
-
-    # async with open(f'Список зарегистрировашихся на {name_event}.xlsx') as file:
-    #     await bot.send_document(callback_query.from_user.id,file)
-
-
-
-
-
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_course, commands='Загрузить', state=None)
