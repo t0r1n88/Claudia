@@ -1,6 +1,8 @@
 import sqlite3 as sq
 from create_bot import bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import pandas as pd
+from io import BytesIO
 
 
 # Создаем функцию для старта базы данных
@@ -23,8 +25,9 @@ def sql_start():
         ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
     # Сохраняем эти изменения
     # Создаем таблицу по учету участников мероприятия если ее нет
-    base.execute('CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'
-                 'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
+    base.execute(
+        'CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'
+        'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
 
     base.commit()
 
@@ -41,14 +44,19 @@ async def sql_add_course(state):
             'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark) VALUES (?,?,?,?,?)',
             tuple(data.values()))
         base.commit()
+
+
 async def sql_add_reg_on_event(state):
     """
     Функция для добавления в базу данных заявки на мероприятие
     """
     async with state.proxy() as data:
         # Вставляем данные в таблицу
-        cur.execute('INSERT INTO participants(name_event,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',tuple(data.values()))
+        cur.execute('INSERT INTO participants(name_event,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',
+                    tuple(data.values()))
         base.commit()
+
+
 async def sql_confirm_presense_on_location(state):
     """
     Функция для вставки значений геолокации в таблицу
@@ -59,8 +67,12 @@ async def sql_confirm_presense_on_location(state):
         """
         Порядок данных name_event,id_participant,latitude,longitude,event_mark
         """
-    cur.execute('UPDATE participants SET latitude == ?,longitude == ?, time_mark == ?  WHERE name_event == ? and id_participant == ?',[temp_loc_data[2],temp_loc_data[3],temp_loc_data[4],temp_loc_data[0],temp_loc_data[1]])
+    cur.execute(
+        'UPDATE participants SET latitude == ?,longitude == ?, time_mark == ?  WHERE name_event == ? and id_participant == ?',
+        [temp_loc_data[2], temp_loc_data[3], temp_loc_data[4], temp_loc_data[0], temp_loc_data[1]])
     base.commit()
+
+
 async def sql_read_course(message):
     # Получаем все данные из таблицы Курсы в виде списка списков
     for row in cur.execute('SELECT * FROM courses').fetchall():
@@ -73,8 +85,9 @@ async def sql_read_course(message):
                                  f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
         else:
             # Создаем кнопки
-            inline_reg__event_button =InlineKeyboardButton(f'^^^Принять участие^^^',callback_data=f'reg {row[0]}')
-            inline_confirmed__event_button =InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',callback_data=f'conf {row[0]}')
+            inline_reg__event_button = InlineKeyboardButton(f'^^^Принять участие^^^', callback_data=f'reg {row[0]}')
+            inline_confirmed__event_button = InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',
+                                                                  callback_data=f'conf {row[0]}')
             # inline_event_kb = InlineKeyboardMarkup().row(inline_reg__event_button,inline_confirmed__event_button)
             inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button)
             await bot.send_photo(message.from_user.id, row[1],
@@ -88,11 +101,48 @@ async def sql_read_all_courses():
     """
     return cur.execute('SELECT * FROM courses').fetchall()
 
+
 async def sql_read_name_course(id_course):
     """
     Функция для получения названия курса по айди курса
     """
-    return cur.execute('SELECT name_course FROM courses WHERE course_id == ? ',(id_course,)).fetchone()
+    return cur.execute('SELECT name_course FROM courses WHERE course_id == ? ', (id_course,)).fetchone()
+
+
+async def sql_get_registered(name_event):
+    """
+    Функция для получения списка зарегистрировавшихся на мероприятие
+    """
+    # подключаемся к базе данных
+    con = sq.connect('copp.db')
+    # Считываем данные
+    df = pd.read_sql("SELECT * FROM participants", con, parse_dates={'time_mark': {'errors': 'coerce'}})
+    # Получаем записи относящиеся к нужному мероприятию
+    selection_df = df[df['name_event'] == name_event]
+    # Отбираем нужные колонки
+    registered_df = selection_df[['app_id', 'name_event', 'id_participant', 'phone', 'first_name', 'last_name']]
+    # Переименовываем колонки
+    registered_df.columns = ['ID заявки', 'Название мероприятия', 'Telegram ID пользователя', 'Телефон', 'Имя',
+                             'Фамилия']
+    # На будущее чтобы попробовать избежать сохранения на диске.
+    # # Превращаем в объект Excel
+    # bio = BytesIO()
+    #
+    # # By setting the 'engine' in the ExcelWriter constructor.
+    # writer = pd.ExcelWriter(bio, engine="openpyxl")
+    # registered_df.to_excel(writer, sheet_name="Sheet1")
+    #
+    # # Save the workbook
+    # writer.save()
+    #
+    # # Seek to the beginning and read to copy the workbook to a variable in memory
+    # bio.seek(0)
+    # workbook = bio.read()
+    #
+    # return workbook
+
+
+    registered_df.to_excel(f'Список зарегистрировашихся на {name_event}.xlsx', index=False)
 
 
 async def sql_delete_course(id_course):
@@ -101,5 +151,3 @@ async def sql_delete_course(id_course):
     """
     cur.execute('DELETE FROM courses WHERE course_id == ?', (id_course,))
     base.commit()
-
-
