@@ -22,6 +22,7 @@ async def  calculate_distanse(event_location,location):
     """
     Функция для получения кортежа вида (Широта,Долгота)
     """
+
     if None not in location:
         return GD(event_location,location).m
 
@@ -257,9 +258,8 @@ async def set_event_location(message:types.Message,state:FSMContext):
     Функция для установки геолокации мероприятия
     """
     async with state.proxy() as data:
-        # Создаем кортеж вида (широта, долгота)
-        tuple_event_location = (message.location.latitude,message.location.longitude)
-        data['event_location'] = tuple_event_location
+        data['event_location_latitude'] = message.location.latitude
+        data['event_location_longitude'] = message.location.longitude
     await FSMReportAdmin.next()
 
     await message.reply('Введите дату и время НАЧАЛА мероприятия в формате день.месяц.год час.минута.секунда\n'
@@ -325,15 +325,21 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         # превращаем его в датафрейм
         df = pd.DataFrame(all_app,columns=['app_id','name_event','id_participant','phone','first_name','last_name'
             ,'latitude','longitude','time_mark'])
-        print(df.shape)
-        print(df)
+
         # Добавляем колонки из data
         df['event_location'] = data['event_location']
         df['time_begin_event'] = data['time_begin_event']
         df['time_end_event'] = data['time_end_event']
         df['distance_event'] = data['distance_event']
 
-        # Считаем дистанцию между геометками
+        print(df)
+
+        # # Считаем дистанцию между геометками
+        # # Создаем колонку объединив колонки с широтой и долготой
+        # df['user_location'] = list(zip(df['latitude'],df['longitude']))
+        # df['conf_distance'] = df['user_location'].apply(lambda x:GD(data['event_location'],x))
+        #
+        # print(df['conf_distance'])
 
 
 
