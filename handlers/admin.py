@@ -1,3 +1,4 @@
+import pandas as pd
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
@@ -9,10 +10,20 @@ from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from keyboards import admin_kb
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import re
 import datetime
-# Создаем константу
+from geopy.distance import geodesic as GD
+
+
+# Создаем константу для айди пользователя по которой будем определять является ли пользователь админом
 ID = None
+
+
+async def  calculate_distanse(event_location,location):
+    """
+    Функция для получения кортежа вида (Широта,Долгота)
+    """
+    if None not in location:
+        return GD(event_location,location).m
 
 
 class FSMAdmin(StatesGroup):
@@ -250,8 +261,9 @@ async def set_event_location(message:types.Message,state:FSMContext):
         tuple_event_location = (message.location.latitude,message.location.longitude)
         data['event_location'] = tuple_event_location
     await FSMReportAdmin.next()
+
     await message.reply('Введите дату и время НАЧАЛА мероприятия в формате день.месяц.год час.минута.секунда\n'
-                        'Например 12.07.2022 14.35.00')
+                        'Например 12.07.2022 14.35.00',reply_markup=types.ReplyKeyboardRemove())
 
 async def set_time_begin_event(message:types.Message,state:FSMContext):
     """
@@ -296,7 +308,7 @@ async def set_distance_event(message:types.Message,state:FSMContext):
         distance = int(message.text)
         async with state.proxy() as data:
             data['distance_event'] = distance
-        await message.reply('Ожидайте завершения обработки данных')
+        await message.reply('Отправьте символ # чтобы начать обработку данных')
         await FSMReportAdmin.next()
 
     except ValueError:
@@ -306,8 +318,29 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
     """
     Функция для создания самого отчета
     """
+
     async with state.proxy() as data:
-        print(data)
+    # Получаем список кортежей с заявками на нужное мероприятие
+        all_app = await sqlite_db.sql_get_confirmed(data['name_event'])
+        # превращаем его в датафрейм
+        df = pd.DataFrame(all_app,columns=['app_id','name_event','id_participant','phone','first_name','last_name'
+            ,'latitude','longitude','time_mark'])
+        print(df.shape)
+        print(df)
+        # Добавляем колонки из data
+        df['event_location'] = data['event_location']
+        df['time_begin_event'] = data['time_begin_event']
+        df['time_end_event'] = data['time_end_event']
+        df['distance_event'] = data['distance_event']
+
+        # Считаем дистанцию между геометками
+
+
+
+
+
+
+
 
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
@@ -326,6 +359,7 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(set_time_begin_event,state=FSMReportAdmin.time_begin_event)
     dp.register_message_handler(set_time_end_event,state=FSMReportAdmin.time_end_event)
     dp.register_message_handler(set_distance_event,state=FSMReportAdmin.distance_event)
+    dp.register_message_handler(processing_report_participants,state=FSMReportAdmin.create_report)
 
 
     dp.register_message_handler(delete_course, commands=['Удалить'])

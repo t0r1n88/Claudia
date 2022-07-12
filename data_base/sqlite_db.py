@@ -151,6 +151,11 @@ async def sql_get_registered(name_event):
 
     registered_df.to_excel(f'Список зарегистрировашихся на {name_event}.xlsx', index=False)
 
+async def sql_get_confirmed(name_event):
+    """
+    Функция для получения заявок на определенное мероприятияе
+    """
+    return cur.execute('SELECT * FROM participants WHERE name_event == ? ', (name_event,)).fetchall()
 
 async def sql_delete_course(id_course):
     """
