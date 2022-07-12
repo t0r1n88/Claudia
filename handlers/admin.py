@@ -1,5 +1,7 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+
+import keyboards.admin_kb
 from create_bot import dp, bot
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
@@ -7,7 +9,8 @@ from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from keyboards import admin_kb
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+import re
+import datetime
 # Создаем константу
 ID = None
 
@@ -16,13 +19,24 @@ class FSMAdmin(StatesGroup):
     """
     Класс в котором мы создаем состояния для шагов машины состояний
     """
-    # Состояния которые будут использоватья в процессе загрузки нового курса
+    # Состояния которые будут использоваться в процессе загрузки нового курса
     photo_course = State()
     name_course = State()
     description_course = State()
     how_sign_course = State()
     event_mark = State()
 
+class FSMReportAdmin(StatesGroup):
+    """
+    Класс в котором хранятся шаги машины состояний посещаемости
+    """
+    # состояния которые будут использоваться при обработке посещаемости
+    name_event = State()
+    event_location = State()
+    time_begin_event = State()
+    time_end_event = State()
+    distance_event = State()
+    create_report = State()
 
 
 # проверяем пользователя на права администратора в группе
@@ -32,7 +46,7 @@ async def make_changes_command(message: types.Message):
     # Получаем айди пользователя
     ID = message.from_user.id
     # Отправляем сообщение через бота в личку пользователю
-    await bot.send_message(message.from_user.id, 'Что прикажете повелитель?', reply_markup=admin_kb.kb_admin_course)
+    await bot.send_message(message.from_user.id, 'Ожидаю ваших команд', reply_markup=admin_kb.kb_admin_course)
     await message.delete()
 
 
@@ -176,8 +190,6 @@ async def report_event(message:types.Message):
     if message.from_user.id == ID:
         # Получаем из таблицы данные всех курсов
         all_course_data = await sqlite_db.sql_read_all_courses()
-        # Создаем инлайн клавиатуру с двумя кнопками
-
 
         # Итерируемся по полученному списку кортежей
         for course in all_course_data:
@@ -209,16 +221,113 @@ async def get_registered_callback_run(callback_query: types.CallbackQuery):
         await bot.send_document(callback_query.from_user.id,file)
     await callback_query.answer(f'Скачайте файл с данными зарегистрировавшихся', show_alert=True)
 
+# Запускаем машину состояний посещаемости
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('get par'))
+async def get_confirmed_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
+    # Получаем айди нужного мероприятия
+    id_event = callback_query.data.replace('get par ', '')
+    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # Получаем название мероприятия
+    name_event = tuple_name_event[0]
+    # Запускаем машину состояний
+    await FSMReportAdmin.name_event.set()
+    # записываем название мероприятия
+    async with state.proxy() as data:
+        data['name_event'] = name_event
+
+    # Переходим на следующий шаг
+    await FSMReportAdmin.next()
+    # Отправляем запрос на локацию
+    await callback_query.message.reply('Нажмите кнопку Отправить локацию мероприятия\n чтобы прекратить создание отчета напишите в чат слово отмена',
+                                       reply_markup=keyboards.admin_kb.kb_admin_event_location)
+async def set_event_location(message:types.Message,state:FSMContext):
+    """
+    Функция для установки геолокации мероприятия
+    """
+    async with state.proxy() as data:
+        # Создаем кортеж вида (широта, долгота)
+        tuple_event_location = (message.location.latitude,message.location.longitude)
+        data['event_location'] = tuple_event_location
+    await FSMReportAdmin.next()
+    await message.reply('Введите дату и время НАЧАЛА мероприятия в формате день.месяц.год час.минута.секунда\n'
+                        'Например 12.07.2022 14.35.00')
+
+async def set_time_begin_event(message:types.Message,state:FSMContext):
+    """
+    Функция для установки даты начала мероприятия
+    """
+    # Проверяем корректность введенного текста. Конечно можно было использовать регулярку, но проще будет try except
+    try:
+        time_begin_event = datetime.datetime.strptime(message.text,"%d.%m.%Y %H.%M.%S")
+        async with state.proxy() as data:
+            data['time_begin_event'] = time_begin_event
+        await FSMReportAdmin.next()
+        await message.reply('Введите дату и время ОКОНЧАНИЯ мероприятия в формате день.месяц.год час.минута.секунда\n'
+                        'Например 12.07.2022 14.35.00')
+
+    except ValueError:
+        await message.reply('Проверьте корректность введенных данных!!!в формате день.месяц.год час.минута.секунда\n'
+                        'Например 12.07.2022 14.35.00')
+
+async def set_time_end_event(message:types.Message,state:FSMContext):
+    """
+    Функция для установки даты окончания мероприятия
+    """
+    # Проверяем корректность введенного текста. Конечно можно было использовать регулярку, но проще будет try except
+    try:
+        time_end_event = datetime.datetime.strptime(message.text,"%d.%m.%Y %H.%M.%S")
+        async with state.proxy() as data:
+            data['time_end_event'] = time_end_event
+        await FSMReportAdmin.next()
+        await message.reply('Введите расстояние в метрах, все участники расстояние между геометками которых и геометкой мероприятия будут меньше этого значения\n будут считаться посетившими мероприятие \n'
+                        'Например 200. Не забывайте что погрешность геолокации в среднем 50 метров')
+
+    except ValueError:
+        await message.reply('Проверьте корректность введенных данных!!!в формате день.месяц.год час.минута.секунда\n'
+                        'Например 12.07.2022 14.35.00')
+
+async def set_distance_event(message:types.Message,state:FSMContext):
+    """
+    Функция для установки допустимой дистацнии присутствия
+    """
+    # Проверяем корректность ввода
+    try:
+        distance = int(message.text)
+        async with state.proxy() as data:
+            data['distance_event'] = distance
+        await message.reply('Ожидайте завершения обработки данных')
+        await FSMReportAdmin.next()
+
+    except ValueError:
+        await message.reply('Проверьте введенные данные!!! Введите только ЦИФРЫ!!!')
+
+async def processing_report_participants(message:types.Message,state:FSMContext):
+    """
+    Функция для создания самого отчета
+    """
+    async with state.proxy() as data:
+        print(data)
+
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_course, commands='Загрузить', state=None)
     dp.register_message_handler(cancel_handler_load_course, state="*", commands='отмена')
     dp.register_message_handler(cancel_handler_load_course, Text(equals='отмена', ignore_case=True), state="*")
+    # Хэндлеры машины состояний загрузки курсов
     dp.register_message_handler(load_photo_course, content_types=['photo'], state=FSMAdmin.photo_course)
     dp.register_message_handler(load_name_course, state=FSMAdmin.name_course)
     dp.register_message_handler(load_description_course, state=FSMAdmin.description_course)
     dp.register_message_handler(load_how_sign_course, state=FSMAdmin.how_sign_course)
     dp.register_message_handler(load_event_mark_course,state=FSMAdmin.event_mark)
+    # Хэндлеры машины состояний посещаемости
+    dp.register_message_handler(get_confirmed_callback_run,state=FSMReportAdmin.name_event)
+    dp.register_message_handler(set_event_location,content_types=['location'],state=FSMReportAdmin.event_location)
+    dp.register_message_handler(set_time_begin_event,state=FSMReportAdmin.time_begin_event)
+    dp.register_message_handler(set_time_end_event,state=FSMReportAdmin.time_end_event)
+    dp.register_message_handler(set_distance_event,state=FSMReportAdmin.distance_event)
+
+
     dp.register_message_handler(delete_course, commands=['Удалить'])
     dp.register_message_handler(report_event,commands=['Отчетность'])
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
