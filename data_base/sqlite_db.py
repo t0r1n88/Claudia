@@ -95,12 +95,11 @@ async def sql_read_course(message):
             inline_reg__event_button = InlineKeyboardButton(f'^^^Принять участие^^^', callback_data=f'reg {row[0]}')
             inline_confirmed__event_button = InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',
                                                                   callback_data=f'conf {row[0]}')
-            # inline_event_kb = InlineKeyboardMarkup().row(inline_reg__event_button,inline_confirmed__event_button)
-            inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button)
+            inline_del_reg_event_button = InlineKeyboardButton(f'^^^Отменить заявку на мероприятие^^^',callback_data=f'rem {row[0]}')
+            inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button).add(inline_del_reg_event_button)
             await bot.send_photo(message.from_user.id, row[1],
                                  f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
                                  reply_markup=inline_event_kb)
-
 
 async def sql_read_all_courses():
     """
@@ -163,3 +162,11 @@ async def sql_delete_course(id_course):
     """
     cur.execute('DELETE FROM courses WHERE course_id == ?', (id_course,))
     base.commit()
+
+async def sql_cancel_reg_event(name_event,id_participant):
+    """
+    Функция для отмены записи участника на мероприятие
+    """
+    cur.execute('DELETE FROM participants WHERE name_event == ? AND id_participant == ? ', (name_event,id_participant))
+    base.commit()
+

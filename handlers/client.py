@@ -98,6 +98,24 @@ async def get_contact(message: types.Message):
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
 
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('rem '))
+async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
+
+    # Получаем айди нужного мероприятия
+    id_event = callback_query.data.replace('rem ', '')
+    # Получаем название нужного курса
+    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # Распаковываем кортеж
+    name_event = tuple_name_event[0]
+    id_participant = callback_query.from_user.id
+    # Делаем запрос
+    await sqlite_db.sql_cancel_reg_event(name_event,id_participant)
+    await bot.send_message(callback_query.from_user.id,f'Регистрация на {name_event} отменена')
+
+
+
+
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('conf '))
 async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state:FSMContext):
     """
@@ -183,9 +201,6 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
 
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
-
-
-
 
 
 def register_handlers_client(dp: Dispatcher):
