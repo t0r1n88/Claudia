@@ -309,7 +309,7 @@ async def set_distance_event(message:types.Message,state:FSMContext):
         distance = int(message.text)
         async with state.proxy() as data:
             data['distance_event'] = distance
-        await message.reply('Отправьте символ # чтобы начать обработку данных')
+        await message.reply('Отправьте любой символ чтобы начать обработку данных')
         await FSMReportAdmin.next()
 
     except ValueError:
@@ -374,7 +374,17 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
                            'time_end_event': 'Дата_окончания_мероприятия'},
                   inplace=True)
         # Сохраняем результат
-        df.to_excel(f'Отчет {data["name_event"]}.xlsx',index=False)
+        df.to_excel(f'Отчет посещаемости {data["name_event"]}.xlsx',index=False)
+
+        with open(f'Отчет посещаемости {data["name_event"]}.xlsx','rb') as file:
+            await bot.send_document(message.from_user.id,file)
+
+        # выходим из маишны состояния
+        await state.finish()
+        await bot.send_message(message.from_user.id,'Скачайте файл',reply_markup=keyboards.admin_kb.kb_admin_course)
+
+
+
 
 
 # регистрируем хендлеры
