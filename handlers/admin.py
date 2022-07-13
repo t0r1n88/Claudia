@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
@@ -18,14 +19,14 @@ from geopy.distance import geodesic as GD
 ID = None
 
 
-async def  calculate_distanse(event_location,location):
+def calculate_distanse(row):
     """
-    Функция для получения кортежа вида (Широта,Долгота)
+    Функция для подсчета дистванции
     """
-
-    if None not in location:
-        return GD(event_location,location).m
-
+    if None not in row['location']:
+        return GD(row['event_location'], row['location']).m
+    else:
+        return None
 
 class FSMAdmin(StatesGroup):
     """
@@ -326,26 +327,54 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         df = pd.DataFrame(all_app,columns=['app_id','name_event','id_participant','phone','first_name','last_name'
             ,'latitude','longitude','time_mark'])
 
-        # Добавляем колонки из data
-        df['event_location'] = data['event_location']
+        # конвертируем колонку time_mark к формату времени
+        df['time_mark'] = pd.to_datetime(df['time_mark'])
+        # сохраняем в переменные даты начала и окончания мероприятия,чтобы было легче проверять
+        begin_date = data['time_begin_event']
+        end_date = data['time_end_event']
+        # конвертируем строку в datetime
+        # time_begin_event = datetime.datetime.strptime(begin_date, "%d.%m.%Y %H.%M.%S")
+        # time_end_event = datetime.datetime.strptime(end_date, "%d.%m.%Y %H.%M.%S")
+        time_begin_event = data['time_begin_event']
+        time_end_event = data['time_end_event']
+
+
+
+        # Добавляем колонки из data и создаем колонки в датафрейме
+        df['event_location_latitude'] = data['event_location_latitude']
+        df['event_location_longitude'] = data['event_location_longitude']
+        df['event_location'] = list(zip(df['event_location_latitude'], df['event_location_longitude']))
+        df['location'] = list(zip(df['latitude'], df['longitude']))
         df['time_begin_event'] = data['time_begin_event']
         df['time_end_event'] = data['time_end_event']
-        df['distance_event'] = data['distance_event']
-
-        print(df)
-
-        # # Считаем дистанцию между геометками
-        # # Создаем колонку объединив колонки с широтой и долготой
-        # df['user_location'] = list(zip(df['latitude'],df['longitude']))
-        # df['conf_distance'] = df['user_location'].apply(lambda x:GD(data['event_location'],x))
-        #
-        # print(df['conf_distance'])
-
-
-
-
-
-
+        df['threshold_distance'] = data['distance_event']
+        df['distance'] = df.apply(calculate_distanse, axis=1)
+        # Округляем значения
+        df['distance'] = df['distance'].apply(np.floor)
+        # Считаем входит ли время отправки подтверждения в нужный диапазон
+        df['time_result'] = df['time_mark'].apply(lambda x: time_begin_event <= x <= time_end_event)
+        # Сравниваем полученное расстояние геометки пользователя и геометки мероприятия с установленным пределом
+        df['distance_result'] = df['distance'] <= df['threshold_distance']
+        # Формируем итоговый результат
+        df['confrim'] = (df['time_result'] == True) & (df['distance_result'] == True)
+        # Меняем булевы значения в датафрейме
+        df.replace({True: 'Подтверждено', False: 'Не подтверждено'}, inplace=True)
+        # Меняем названия колонок
+        df.rename(columns={'app_id': 'Номер_заявки', 'name_event': 'Название_мероприятия', 'id_participant': 'id_участника',
+                           'phone': 'Телефон',
+                           'first_name': 'Имя', 'last_name': 'Фамилия', 'latitude': 'Широта_геометки_участника',
+                           'longitude': 'Долгота_геометки_участника',
+                           'time_mark': 'Дата_время_подтверждения',
+                           'event_location_latitude': 'Широта_геометки_мероприятия',
+                           'event_location_longitude': 'Долгота_геометка_мероприятия',
+                           'event_location': 'Геометка_мероприятия', 'location': 'Геометка_участника',
+                           'threshold_distance': 'Допустимое_расстояние_участия', 'distance': 'Итоговое_расстояние_участия',
+                           'time_result': 'Участие_по_времени', 'distance_result': 'Участие_по_геометке',
+                           'confrim': 'Подтверждение_участия', 'time_begin_event': 'Дата_начала_мероприятия',
+                           'time_end_event': 'Дата_окончания_мероприятия'},
+                  inplace=True)
+        # Сохраняем результат
+        df.to_excel(f'Отчет {data["name_event"]}.xlsx',index=False)
 
 
 # регистрируем хендлеры
