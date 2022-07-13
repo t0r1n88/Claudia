@@ -234,6 +234,7 @@ async def get_registered_callback_run(callback_query: types.CallbackQuery):
         await bot.send_document(callback_query.from_user.id,file)
     await callback_query.answer(f'Скачайте файл с данными зарегистрировавшихся', show_alert=True)
 
+
 # Запускаем машину состояний посещаемости
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('get par'))
 async def get_confirmed_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
@@ -373,15 +374,22 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
                            'confrim': 'Подтверждение_участия', 'time_begin_event': 'Дата_начала_мероприятия',
                            'time_end_event': 'Дата_окончания_мероприятия'},
                   inplace=True)
+        # Создаем сокращенный вариант отчета
+        short_df = df[['Номер_заявки','Название_мероприятия','id_участника','Телефон','Имя','Фамилия','Подтверждение_участия']]
         # Сохраняем результат
-        df.to_excel(f'Отчет посещаемости {data["name_event"]}.xlsx',index=False)
 
-        with open(f'Отчет посещаемости {data["name_event"]}.xlsx','rb') as file:
+        df.to_excel(f'Полный отчет посещаемости {data["name_event"]}.xlsx',index=False)
+        short_df.to_excel(f'Краткий отчет посещаемости {data["name_event"]}.xlsx',index=False)
+
+        with open(f'Полный отчет посещаемости {data["name_event"]}.xlsx','rb') as file:
             await bot.send_document(message.from_user.id,file)
+
+        with open(f'Краткий отчет посещаемости {data["name_event"]}.xlsx','rb') as file1:
+            await bot.send_document(message.from_user.id,file1)
 
         # выходим из маишны состояния
         await state.finish()
-        await bot.send_message(message.from_user.id,'Скачайте файл',reply_markup=keyboards.admin_kb.kb_admin_course)
+        await bot.send_message(message.from_user.id,'Скачайте нужный файл',reply_markup=keyboards.admin_kb.kb_admin_course)
 
 
 
