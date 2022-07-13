@@ -8,7 +8,7 @@ btn_work_regime = KeyboardButton('/Режим_работы')
 btn_share_contact = KeyboardButton('Поделиться номером', request_contact=True)
 # Отправляет боту ваше местоположение
 btn_share_location = KeyboardButton('Отправить где я', request_location=True)
-current_courses = KeyboardButton('/Текущие_курсы')
+current_courses = KeyboardButton('/На_что_можно_записаться')
 # Создаем клавиатуру
 #one_time_keyboard=True аргумент овечающий за то что полсе использования клавиатура исчезает.Ее можно повторно вызвать нажав иконку
 kb_client = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)

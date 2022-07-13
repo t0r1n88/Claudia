@@ -40,7 +40,8 @@ async def command_start(message: types.Message):
     # Получаем айди пользователя и отправляем ему сообщение
     try:
         await bot.send_message(message.from_user.id,
-                               'Добро пожаловать в Центр опережающей профессиональной подготовки Республики Бурятия',
+                               'Добро пожаловать в Центр опережающей профессиональной подготовки Республики Бурятия!\n\n'
+                               'Для работы используйте кнопки расположенные внизу экрана вашего телефона(компьютера).',
                                reply_markup=kb_client)
         # Удаляем сообщение чтобы не спамить в группе
         await message.delete()
@@ -202,7 +203,6 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
 
-
 def register_handlers_client(dp: Dispatcher):
     """
     Регистрируем хэндлеры клиента чтобы не писать над каждой функцией декоратор с командами
@@ -218,6 +218,7 @@ def register_handlers_client(dp: Dispatcher):
 
     dp.register_message_handler(working_regime, commands=['Режим_работы'])
     dp.register_message_handler(adress_copp, commands=['Контакты'])
-    dp.register_message_handler(course_menu, commands=['Текущие_курсы'])
-    # dp.register_message_handler(get_location, content_types=['location'])
+    dp.register_message_handler(course_menu, commands=['На_что_можно_записаться'])
+
+
 

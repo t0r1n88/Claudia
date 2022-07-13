@@ -414,7 +414,6 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(set_distance_event,state=FSMReportAdmin.distance_event)
     dp.register_message_handler(processing_report_participants,state=FSMReportAdmin.create_report)
 
-
     dp.register_message_handler(delete_course, commands=['Удалить'])
     dp.register_message_handler(report_event,commands=['Отчетность'])
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
