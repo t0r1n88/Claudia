@@ -177,6 +177,7 @@ async def del_course_callback_run(callback_query: types.CallbackQuery):
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
     await sqlite_db.sql_delete_course(deleted_course)
     await callback_query.answer(f'Курс  удален', show_alert=True)
+    await callback_query.answer()
 
 async def delete_course(message: types.Message):
     """
@@ -195,6 +196,7 @@ async def delete_course(message: types.Message):
             # Отправляем инлайн кнопку вместе с сообщением
             # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
             await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
+
 
 async def report_event(message:types.Message):
     """
@@ -233,6 +235,7 @@ async def get_registered_callback_run(callback_query: types.CallbackQuery):
     with open(f'Список зарегистрировашихся на {name_event}.xlsx','rb') as file:
         await bot.send_document(callback_query.from_user.id,file)
     await callback_query.answer(f'Скачайте файл с данными зарегистрировавшихся', show_alert=True)
+    await callback_query.answer()
 
 
 # Запускаем машину состояний посещаемости
@@ -255,6 +258,7 @@ async def get_confirmed_callback_run(callback_query: types.CallbackQuery,state:F
     # Отправляем запрос на локацию
     await callback_query.message.reply('Нажмите кнопку Отправить локацию мероприятия\n чтобы прекратить создание отчета напишите в чат слово отмена',
                                        reply_markup=keyboards.admin_kb.kb_admin_event_location)
+    await callback_query.answer()
 async def set_event_location(message:types.Message,state:FSMContext):
     """
     Функция для установки геолокации мероприятия

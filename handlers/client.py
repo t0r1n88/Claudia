@@ -163,6 +163,8 @@ async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
     # Делаем запрос
     await sqlite_db.sql_cancel_reg_event(name_event,id_participant)
     await bot.send_message(callback_query.from_user.id,f'Регистрация на {name_event} отменена')
+    # Подтверждаем завершение операции. Чтобы не крутились часы возле кнопки
+    await callback_query.answer()
 
 
 
@@ -186,6 +188,7 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
     await callback_query.message.reply(
         'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
         reply_markup=keyboards.client_kb.kb_client_confirm_presense)
+    await callback_query.answer()
 
 async def confirm_presense(message:types.Message,state:FSMContext):
     """
@@ -223,6 +226,7 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
     await callback_query.message.reply(
         'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',
         reply_markup=keyboards.client_kb.kb_client_reg)
+    await callback_query.answer()
 
 async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
     # получаем текущее состояние машины состояний
