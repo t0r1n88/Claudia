@@ -161,16 +161,16 @@ async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
     else:
         # если проверка на флуд пройдена то начинаем работу
         # Получаем айди нужного мероприятия
-        id_event = callback_query.data.replace('rem ', '')
+        id_course = callback_query.data.replace('rem ', '')
         # Получаем название нужного курса
         # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-        tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-        # Распаковываем кортеж
-        name_event = tuple_name_event[0]
+        # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+        # # Распаковываем кортеж
+        # name_event = tuple_name_event[0]
         id_participant = callback_query.from_user.id
         # Делаем запрос
-        await sqlite_db.sql_cancel_reg_event(name_event,id_participant)
-        await bot.send_message(callback_query.from_user.id,f'Регистрация на {name_event} отменена')
+        await sqlite_db.sql_cancel_reg_event(id_course,id_participant)
+        await bot.send_message(callback_query.from_user.id,f'Регистрация отменена')
         # Подтверждаем завершение операции. Чтобы не крутились часы возле кнопки
         await callback_query.answer('Регистрация на мероприятие отменена',show_alert=True)
 
@@ -183,14 +183,14 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
     Функция для отправки геометки для подтверждения посещения мероприятия
     """
     # Получаем айди мероприятия на которое происходит записи
-    id_event = callback_query.data.split()[1]
-    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # Распаковываем кортеж
-    name_event = tuple_name_event[0]
+    id_course = callback_query.data.replace('conf ', '')
+    # # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # # Распаковываем кортеж
+    # name_event = tuple_name_event[0]
     await FSMConfirm_presense.name_event.set()
     async with state.proxy() as data:
-        data['name_event'] = name_event
+        data['id_course'] = id_course
 
     await FSMConfirm_presense.next()
     await callback_query.message.reply(
@@ -209,12 +209,12 @@ async def confirm_presense(message:types.Message,state:FSMContext):
         data['event_mark'] = message.date
     # Обновляем данные в таблице, если айди пользователя и имя мероприятия есть в таблице
     # Временный костыль
-    if not await sqlite_db.sql_check_exists_app(data['name_event'], data['id_participant']) == (0,):
+    if not await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) == (0,):
         await sqlite_db.sql_confirm_presense_on_location(state)
         await state.finish()
-        await message.answer(f'Подтверждение вашего присутствия на {data["name_event"]} принято', reply_markup=keyboards.client_kb.kb_client)
+        await message.answer(f'Подтверждение вашего присутствия принято', reply_markup=keyboards.client_kb.kb_client)
     else:
-        await bot.send_message(message.from_user.id, f'Сначала зарегистрируйтесь на {data["name_event"]}',
+        await bot.send_message(message.from_user.id, f'Сначала зарегистрируйтесь на мероприятии',
                                reply_markup=keyboards.client_kb.kb_client)
         await state.finish()
 
@@ -222,14 +222,14 @@ async def confirm_presense(message:types.Message,state:FSMContext):
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('reg '))
 async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
     # Получаем айди мероприятия на которое происходит записи
-    id_event = callback_query.data.split()[1]
+    id_course = callback_query.data.replace('reg ', '')
     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # Распаковываем кортеж
-    name_event = tuple_name_event[0]
+    # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # # Распаковываем кортеж
+    # name_event = tuple_name_event[0]
     await FSMReg_event.name_event.set()
     async with state.proxy() as data:
-        data['name_event'] = name_event
+        data['id_course'] = id_course
     await FSMReg_event.next()
     await callback_query.message.reply(
         'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, напишите в чат слово отмена',
@@ -253,13 +253,13 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['first_name'] = message.contact.first_name
             data['last_name'] = message.contact.last_name
         # Временный костыль
-        if await sqlite_db.sql_check_exists_app(data['name_event'],data['id_participant']) == (0,):
+        if await sqlite_db.sql_check_exists_app(data['id_course'],data['id_participant']) == (0,):
             await sqlite_db.sql_add_reg_on_event(state)
-            await message.answer(f'Вы записаны на мероприятие {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
+            await message.answer(f'Вы записаны на мероприятие',reply_markup=keyboards.client_kb.kb_client)
 
             await state.finish()
         else:
-            await bot.send_message(message.from_user.id,f'Вы УЖЕ записаны на {data["name_event"]}',reply_markup=keyboards.client_kb.kb_client)
+            await bot.send_message(message.from_user.id,f'Вы УЖЕ записаны на это мероприятие',reply_markup=keyboards.client_kb.kb_client)
             await state.finish()
 
     else:

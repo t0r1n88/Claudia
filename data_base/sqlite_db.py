@@ -27,7 +27,7 @@ def sql_start():
     base.commit()
     # Создаем таблицу по учету участников мероприятия если ее нет
     base.execute(
-        'CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'
+        'CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, course_id TEXT, id_participant TEXT,'
         'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
 
     base.commit()
@@ -46,11 +46,11 @@ async def sql_add_course(state):
             tuple(data.values()))
         base.commit()
 
-async def sql_check_exists_app(name_course,id_user):
+async def sql_check_exists_app(course_id,id_user):
     """
     Функция для проверки наличия записи в таблице
     """
-    return cur.execute('SELECT EXISTS (SELECT * from participants WHERE name_event == ? AND id_participant == ?)',(name_course,id_user)).fetchone()
+    return cur.execute('SELECT EXISTS (SELECT * from participants WHERE course_id == ? AND id_participant == ?)',(course_id,id_user)).fetchone()
 
 
 
@@ -60,7 +60,7 @@ async def sql_add_reg_on_event(state):
     """
     async with state.proxy() as data:
         # Вставляем данные в таблицу
-        cur.execute('INSERT INTO participants(name_event,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',
+        cur.execute('INSERT INTO participants(course_id,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',
                     tuple(data.values()))
         base.commit()
 
@@ -73,10 +73,10 @@ async def sql_confirm_presense_on_location(state):
         # Получаем кортеж
         temp_loc_data = tuple(data.values())
         """
-        Порядок данных name_event,id_participant,latitude,longitude,event_mark
+        Порядок данных course_id,id_participant,latitude,longitude,event_mark
         """
     cur.execute(
-        'UPDATE participants SET latitude == ?,longitude == ?, time_mark == ?  WHERE name_event == ? and id_participant == ?',
+        'UPDATE participants SET latitude == ?,longitude == ?, time_mark == ?  WHERE course_id == ? and id_participant == ?',
         [temp_loc_data[2], temp_loc_data[3], temp_loc_data[4], temp_loc_data[0], temp_loc_data[1]])
     base.commit()
 
@@ -116,7 +116,7 @@ async def sql_read_name_course(id_course):
     return cur.execute('SELECT name_course FROM courses WHERE course_id == ? ', (id_course,)).fetchone()
 
 
-async def sql_get_registered(name_event):
+async def sql_get_registered(course_id):
     """
     Функция для получения списка зарегистрировавшихся на мероприятие
     """
@@ -125,9 +125,16 @@ async def sql_get_registered(name_event):
     # Считываем данные
     df = pd.read_sql("SELECT * FROM participants", con, parse_dates={'time_mark': {'errors': 'coerce'}})
     # Получаем записи относящиеся к нужному мероприятию
-    selection_df = df[df['name_event'] == name_event]
+    selection_df = df[df['course_id'] == course_id]
     # Отбираем нужные колонки
-    registered_df = selection_df[['app_id', 'name_event', 'id_participant', 'phone', 'first_name', 'last_name']]
+    registered_df = selection_df[['app_id', 'course_id', 'id_participant', 'phone', 'first_name', 'last_name']].copy()
+
+    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    tuple_name_event = await (sql_read_name_course(course_id))
+    # Распаковываем кортеж
+    name_event = tuple_name_event[0]
+    # Присваиваем колонке course_id значение названия мероприятия
+    registered_df['course_id'] = name_event
     # Переименовываем колонки
     registered_df.columns = ['ID заявки', 'Название мероприятия', 'Telegram ID пользователя', 'Телефон', 'Имя',
                              'Фамилия']
@@ -147,15 +154,16 @@ async def sql_get_registered(name_event):
     # workbook = bio.read()
     #
     # return workbook
+    # Поменять название мероприятия
 
 
     registered_df.to_excel(f'Список зарегистрировашихся на {name_event}.xlsx', index=False)
 
-async def sql_get_confirmed(name_event):
+async def sql_get_confirmed(course_id):
     """
     Функция для получения заявок на определенное мероприятияе
     """
-    return cur.execute('SELECT * FROM participants WHERE name_event == ? ', (name_event,)).fetchall()
+    return cur.execute('SELECT * FROM participants WHERE course_id == ? ', (course_id,)).fetchall()
 
 async def sql_delete_course(id_course):
     """
@@ -164,10 +172,10 @@ async def sql_delete_course(id_course):
     cur.execute('DELETE FROM courses WHERE course_id == ?', (id_course,))
     base.commit()
 
-async def sql_cancel_reg_event(name_event,id_participant):
+async def sql_cancel_reg_event(course_id,id_participant):
     """
     Функция для отмены записи участника на мероприятие
     """
-    cur.execute('DELETE FROM participants WHERE name_event == ? AND id_participant == ? ', (name_event,id_participant))
+    cur.execute('DELETE FROM participants WHERE course_id == ? AND id_participant == ? ', (course_id,id_participant))
     base.commit()
 

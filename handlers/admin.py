@@ -198,6 +198,8 @@ async def delete_course(message: types.Message):
             await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
 
 
+
+
 async def report_event(message:types.Message):
     """
     Функция для получения списка зарегистристрировшихся и списка тех кто был на мероприятии
@@ -225,13 +227,13 @@ async def report_event(message:types.Message):
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('get reg'))
 async def get_registered_callback_run(callback_query: types.CallbackQuery):
     # Получаем айди нужного мероприятия
-    id_event = callback_query.data.replace('get reg ', '')
+    id_course = callback_query.data.replace('get reg ', '')
     # Получаем название нужного курса
     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    tuple_name_event = await (sqlite_db.sql_read_name_course(id_course))
     # Распаковываем кортеж
     name_event = tuple_name_event[0]
-    await sqlite_db.sql_get_registered(name_event)
+    await sqlite_db.sql_get_registered(id_course)
     with open(f'Список зарегистрировашихся на {name_event}.xlsx','rb') as file:
         await bot.send_document(callback_query.from_user.id,file)
     await callback_query.answer(f'Скачайте файл с данными зарегистрировавшихся', show_alert=True)
@@ -242,16 +244,16 @@ async def get_registered_callback_run(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('get par'))
 async def get_confirmed_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
     # Получаем айди нужного мероприятия
-    id_event = callback_query.data.replace('get par ', '')
-    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # Получаем название мероприятия
-    name_event = tuple_name_event[0]
-    # Запускаем машину состояний
+    id_course = callback_query.data.replace('get par ', '')
+    # # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+    # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+    # # Получаем название мероприятия
+    # name_event = tuple_name_event[0]
+    # # Запускаем машину состояний
     await FSMReportAdmin.name_event.set()
     # записываем название мероприятия
     async with state.proxy() as data:
-        data['name_event'] = name_event
+        data['id_course'] = id_course
 
     # Переходим на следующий шаг
     await FSMReportAdmin.next()
@@ -327,10 +329,17 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
 
     async with state.proxy() as data:
     # Получаем список кортежей с заявками на нужное мероприятие
-        all_app = await sqlite_db.sql_get_confirmed(data['name_event'])
+        all_app = await sqlite_db.sql_get_confirmed(data['id_course'])
         # превращаем его в датафрейм
-        df = pd.DataFrame(all_app,columns=['app_id','name_event','id_participant','phone','first_name','last_name'
+        df = pd.DataFrame(all_app,columns=['app_id','id_course','id_participant','phone','first_name','last_name'
             ,'latitude','longitude','time_mark'])
+
+        # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+        tuple_name_event = await (sqlite_db.sql_read_name_course(data['id_course']))
+        # Распаковываем кортеж
+        name_event = tuple_name_event[0]
+        # Присваиваем колонке с айди курса -его название
+        df['id_course'] = name_event
 
         # конвертируем колонку time_mark к формату времени
         df['time_mark'] = pd.to_datetime(df['time_mark'])
@@ -353,9 +362,10 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         df['time_begin_event'] = data['time_begin_event']
         df['time_end_event'] = data['time_end_event']
         df['threshold_distance'] = data['distance_event']
+
         df['distance'] = df.apply(calculate_distanse, axis=1)
-        # Округляем значения
-        df['distance'] = df['distance'].apply(np.floor)
+        # Округляем значения. Также проверяем пустые значения для тех пользователей кто не заполнил геометки
+        df['distance'] = df['distance'].apply(lambda x:np.floor(x) if type(x) == 'float' else x)
         # Считаем входит ли время отправки подтверждения в нужный диапазон
         df['time_result'] = df['time_mark'].apply(lambda x: time_begin_event <= x <= time_end_event)
         # Сравниваем полученное расстояние геометки пользователя и геометки мероприятия с установленным пределом
@@ -365,7 +375,7 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         # Меняем булевы значения в датафрейме
         df.replace({True: 'Подтверждено', False: 'Не подтверждено'}, inplace=True)
         # Меняем названия колонок
-        df.rename(columns={'app_id': 'Номер_заявки', 'name_event': 'Название_мероприятия', 'id_participant': 'id_участника',
+        df.rename(columns={'app_id': 'Номер_заявки', 'id_course': 'Название_мероприятия', 'id_participant': 'id_участника',
                            'phone': 'Телефон',
                            'first_name': 'Имя', 'last_name': 'Фамилия', 'latitude': 'Широта_геометки_участника',
                            'longitude': 'Долгота_геометки_участника',
@@ -382,16 +392,16 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         short_df = df[['Номер_заявки','Название_мероприятия','id_участника','Телефон','Имя','Фамилия','Подтверждение_участия']]
         # Сохраняем результат
 
-        df.to_excel(f'Полный отчет посещаемости {data["name_event"]}.xlsx',index=False)
-        short_df.to_excel(f'Краткий отчет посещаемости {data["name_event"]}.xlsx',index=False)
+        df.to_excel(f'Полный отчет посещаемости {name_event}.xlsx',index=False)
+        short_df.to_excel(f'Краткий отчет посещаемости {name_event}.xlsx',index=False)
 
-        with open(f'Полный отчет посещаемости {data["name_event"]}.xlsx','rb') as file:
+        with open(f'Полный отчет посещаемости {name_event}.xlsx','rb') as file:
             await bot.send_document(message.from_user.id,file)
 
-        with open(f'Краткий отчет посещаемости {data["name_event"]}.xlsx','rb') as file1:
+        with open(f'Краткий отчет посещаемости {name_event}.xlsx','rb') as file1:
             await bot.send_document(message.from_user.id,file1)
 
-        # выходим из маишны состояния
+        # выходим из машины состояния
         await state.finish()
         await bot.send_message(message.from_user.id,'Скачайте нужный файл',reply_markup=keyboards.admin_kb.kb_admin_course)
 
