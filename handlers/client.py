@@ -151,20 +151,28 @@ async def get_contact(message: types.Message):
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('rem '))
 async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
-
-    # Получаем айди нужного мероприятия
-    id_event = callback_query.data.replace('rem ', '')
-    # Получаем название нужного курса
-    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # Распаковываем кортеж
-    name_event = tuple_name_event[0]
-    id_participant = callback_query.from_user.id
-    # Делаем запрос
-    await sqlite_db.sql_cancel_reg_event(name_event,id_participant)
-    await bot.send_message(callback_query.from_user.id,f'Регистрация на {name_event} отменена')
-    # Подтверждаем завершение операции. Чтобы не крутились часы возле кнопки
-    await callback_query.answer()
+    try:
+        # Execute throttling manager with rate-limit equal to 2 seconds for key "start"
+        await dp.throttle('rem ', rate=2)
+    except Throttled:
+        # If request is throttled, the `Throttled` exception will be raised
+        await callback_query.message.answer('Остановитесь! Подождите 2 секунды!')
+        await callback_query.answer()
+    else:
+        # если проверка на флуд пройдена то начинаем работу
+        # Получаем айди нужного мероприятия
+        id_event = callback_query.data.replace('rem ', '')
+        # Получаем название нужного курса
+        # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
+        tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
+        # Распаковываем кортеж
+        name_event = tuple_name_event[0]
+        id_participant = callback_query.from_user.id
+        # Делаем запрос
+        await sqlite_db.sql_cancel_reg_event(name_event,id_participant)
+        await bot.send_message(callback_query.from_user.id,f'Регистрация на {name_event} отменена')
+        # Подтверждаем завершение операции. Чтобы не крутились часы возле кнопки
+        await callback_query.answer('Регистрация на мероприятие отменена',show_alert=True)
 
 
 
@@ -188,7 +196,7 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
     await callback_query.message.reply(
         'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
         reply_markup=keyboards.client_kb.kb_client_confirm_presense)
-    await callback_query.answer()
+    await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии',show_alert=True)
 
 async def confirm_presense(message:types.Message,state:FSMContext):
     """
@@ -224,9 +232,9 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
         data['name_event'] = name_event
     await FSMReg_event.next()
     await callback_query.message.reply(
-        'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы отказать от регистрации напишите в чат слово отмена',
+        'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, напишите в чат слово отмена',
         reply_markup=keyboards.client_kb.kb_client_reg)
-    await callback_query.answer()
+    await callback_query.answer('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться',show_alert=True)
 
 async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
     # получаем текущее состояние машины состояний

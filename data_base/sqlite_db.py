@@ -24,6 +24,7 @@ def sql_start():
         'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT,'
         ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
     # Сохраняем эти изменения
+    base.commit()
     # Создаем таблицу по учету участников мероприятия если ее нет
     base.execute(
         'CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, name_event TEXT, id_participant TEXT,'

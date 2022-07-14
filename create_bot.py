@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # Текущий цикл событий. Для предотвращения флудинга
 # https://aiogram-birdi7.readthedocs.io/en/latest/examples/throtling_example.html
