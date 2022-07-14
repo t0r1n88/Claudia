@@ -3,6 +3,7 @@ from aiogram.utils import executor
 from create_bot import dp
 from handlers import client,admin,other
 from data_base import sqlite_db
+from create_bot import loop
 
 # Данный бот сделан по примеру курса https://www.youtube.com/playlist?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
 # Очень понятное объяснение
@@ -24,4 +25,4 @@ other.register_handlers_other(dp)
 
 # Запускаем бота
 # skip_updates=True - для того чтобы бот не отвечал на сообщение пришедшие когда он бы не в онлайн
-executor.start_polling(dp,skip_updates=True,on_startup=on_startup)
+executor.start_polling(dp,skip_updates=True,on_startup=on_startup,loop=loop)

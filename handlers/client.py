@@ -7,7 +7,9 @@ from keyboards import kb_client
 from data_base import sqlite_db
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
-from aiogram.types import ReplyKeyboardMarkup,KeyboardButton
+from aiogram.utils.exceptions import Throttled
+
+
 
 """*********************************КЛИЕНТСКАЯ ЧАСТЬ*************************************"""
 """************Машина состояний для регистрации на мероприятие"""
@@ -55,11 +57,32 @@ async def working_regime(message: types.Message):
     """
     Обработка команды режим работы
     """
+    # Вариант с контролем флуда. То есть на случай если пользователь будет много раз нажимать кнопку
+    # Взято отсюда https://aiogram-birdi7.readthedocs.io/en/latest/examples/throtling_example.html
     try:
-        await bot.send_message(message.from_user.id, 'Пн-Пт с 9:00 до 18:00, Сб-Вс выходные')
-        await message.delete()
-    except:
-        await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
+        # Execute throttling manager with rate-limit equal to 2 seconds for key "start"
+        await dp.throttle('Режим_работы', rate=2)
+    except Throttled:
+        # If request is throttled, the `Throttled` exception will be raised
+        await message.reply('Остановитесь! Подождите 2 секунды!')
+    else:
+        # если проверка на флуд пройдена то начинаем работу
+        try:
+            await bot.send_message(message.from_user.id, 'Пн-Пт с 9:00 до 18:00, Сб-Вс выходные')
+            await message.delete()
+        except:
+            await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
+
+
+
+
+
+    #Старый вариант
+    # try:
+    #     await bot.send_message(message.from_user.id, 'Пн-Пт с 9:00 до 18:00, Сб-Вс выходные')
+    #     await message.delete()
+    # except:
+    #     await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
 
 # @dp.message_handler(commands=['Контакты'])
@@ -67,17 +90,44 @@ async def adress_copp(message: types.Message):
     """
     Обработка команды контакты
     """
+    # Вариант с контролем флуда. То есть на случай если пользователь будет много раз нажимать кнопку
+    # Взято отсюда https://aiogram-birdi7.readthedocs.io/en/latest/examples/throtling_example.html
     try:
-        await bot.send_message(message.from_user.id,
-                               'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
-        await message.delete()
-    except:
-        await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
+        # Execute throttling manager with rate-limit equal to 2 seconds for key "start"
+        await dp.throttle('Контакты', rate=2)
+    except Throttled:
+        # If request is throttled, the `Throttled` exception will be raised
+        await message.reply('Остановитесь! Подождите 2 секунды!')
+    else:
+        # если проверка на флуд пройдена то начинаем работу
+        try:
+            await bot.send_message(message.from_user.id,
+                                   'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
+            await message.delete()
+        except:
+            await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
+
+
+    #Старый вариант
+    # try:
+    #     await bot.send_message(message.from_user.id,
+    #                            'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
+    #     await message.delete()
+    # except:
+    #     await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
 
 #
 async def course_menu(message: types.Message):
-    await sqlite_db.sql_read_course(message)
+    try:
+        # Execute throttling manager with rate-limit equal to 2 seconds for key "start"
+        await dp.throttle('На_что_можно_записаться', rate=2)
+    except Throttled:
+        # If request is throttled, the `Throttled` exception will be raised
+        await message.reply('Остановитесь! Подождите 2 секунды!')
+    else:
+        # если проверка на флуд пройдена то начинаем работу
+        await sqlite_db.sql_read_course(message)
 
 
 async def get_location(message: types.Message):
