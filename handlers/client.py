@@ -69,7 +69,7 @@ async def working_regime(message: types.Message):
         # если проверка на флуд пройдена то начинаем работу
         try:
             await bot.send_message(message.from_user.id, 'Пн-Пт с 9:00 до 18:00, Сб-Вс выходные')
-            await message.delete()
+            # await message.delete()
         except:
             await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
@@ -103,7 +103,7 @@ async def adress_copp(message: types.Message):
         try:
             await bot.send_message(message.from_user.id,
                                    'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
-            await message.delete()
+            # await message.delete()
         except:
             await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
@@ -223,18 +223,26 @@ async def confirm_presense(message:types.Message,state:FSMContext):
 async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMContext):
     # Получаем айди мероприятия на которое происходит записи
     id_course = callback_query.data.replace('reg ', '')
-    # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # # Распаковываем кортеж
-    # name_event = tuple_name_event[0]
-    await FSMReg_event.name_event.set()
-    async with state.proxy() as data:
-        data['id_course'] = id_course
-    await FSMReg_event.next()
-    await callback_query.message.reply(
-        'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, напишите в чат слово отмена',
-        reply_markup=keyboards.client_kb.kb_client_reg)
-    await callback_query.answer('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться',show_alert=True)
+    # Проверяем наличие курса
+    result = await sqlite_db.sql_check_exist_course(id_course)
+    # Если курс существует то запускаем машину состояний
+    if result is not None:
+        await FSMReg_event.name_event.set()
+        async with state.proxy() as data:
+            data['id_course'] = id_course
+        await FSMReg_event.next()
+        await callback_query.message.reply(
+            'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, напишите в чат слово отмена',
+            reply_markup=keyboards.client_kb.kb_client_reg)
+        await callback_query.answer('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться',show_alert=True)
+    else:
+
+        await callback_query.answer(' Данный курс был удален из базы данных\n'
+                                    'Обновите список курсов нажав кнопку На_что_можно_записаться',show_alert=True
+                               )
+        await state.finish()
+
+
 
 async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
     # получаем текущее состояние машины состояний
@@ -252,14 +260,16 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['phone'] = message.contact.phone_number
             data['first_name'] = message.contact.first_name
             data['last_name'] = message.contact.last_name
-        # Временный костыль
-        if await sqlite_db.sql_check_exists_app(data['id_course'],data['id_participant']) == (0,):
+
+        # проверяем записывался ли человек на этот курс
+        if await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) is None:
             await sqlite_db.sql_add_reg_on_event(state)
-            await message.answer(f'Вы записаны на мероприятие',reply_markup=keyboards.client_kb.kb_client)
+            await message.answer(f'Вы записаны на мероприятие', reply_markup=keyboards.client_kb.kb_client)
 
             await state.finish()
         else:
-            await bot.send_message(message.from_user.id,f'Вы УЖЕ записаны на это мероприятие',reply_markup=keyboards.client_kb.kb_client)
+            await bot.send_message(message.from_user.id, f'Вы УЖЕ записаны на это мероприятие',
+                                   reply_markup=keyboards.client_kb.kb_client)
             await state.finish()
 
     else:

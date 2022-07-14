@@ -50,7 +50,7 @@ async def sql_check_exists_app(course_id,id_user):
     """
     Функция для проверки наличия записи в таблице
     """
-    return cur.execute('SELECT EXISTS (SELECT * from participants WHERE course_id == ? AND id_participant == ?)',(course_id,id_user)).fetchone()
+    return cur.execute('SELECT app_id from participants WHERE course_id == ? AND id_participant == ?',(course_id,id_user)).fetchone()
 
 
 
@@ -60,8 +60,7 @@ async def sql_add_reg_on_event(state):
     """
     async with state.proxy() as data:
         # Вставляем данные в таблицу
-        cur.execute('INSERT INTO participants(course_id,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)',
-                    tuple(data.values()))
+        cur.execute('INSERT INTO participants(course_id,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)', tuple(data.values()))
         base.commit()
 
 
@@ -113,7 +112,7 @@ async def sql_read_name_course(id_course):
     """
     Функция для получения названия курса по айди курса
     """
-    return cur.execute('SELECT name_course FROM courses WHERE course_id == ? ', (id_course,)).fetchone()
+    return cur.execute('SELECT name_course FROM courses WHERE course_id == ?', (id_course,)).fetchone()
 
 
 async def sql_get_registered(course_id):
@@ -163,7 +162,7 @@ async def sql_get_confirmed(course_id):
     """
     Функция для получения заявок на определенное мероприятияе
     """
-    return cur.execute('SELECT * FROM participants WHERE course_id == ? ', (course_id,)).fetchall()
+    return cur.execute('SELECT * FROM participants WHERE course_id == ?', (course_id,)).fetchall()
 
 async def sql_delete_course(id_course):
     """
@@ -176,6 +175,11 @@ async def sql_cancel_reg_event(course_id,id_participant):
     """
     Функция для отмены записи участника на мероприятие
     """
-    cur.execute('DELETE FROM participants WHERE course_id == ? AND id_participant == ? ', (course_id,id_participant))
+    cur.execute('DELETE FROM participants WHERE course_id == ? AND id_participant == ?', (course_id,id_participant))
     base.commit()
 
+async def sql_check_exist_course(course_id):
+    """
+    Функция для проверки существования курса. Поскольку курс может быть удален
+    """
+    return cur.execute('SELECT course_id FROM courses WHERE course_id == ?',(course_id,)).fetchone()
