@@ -21,7 +21,7 @@ def sql_start():
     # not EXISTS если таблица уже существует то ничего не делаем
     # img картинку мы храним в виде file.id хранимого на серверах телеграмма
     base.execute(
-        'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY, img TEXT,'
+        'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY AUTOINCREMENT, img TEXT,'
         ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
     # Сохраняем эти изменения
     base.commit()

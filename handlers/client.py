@@ -184,19 +184,24 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
     """
     # Получаем айди мероприятия на которое происходит записи
     id_course = callback_query.data.replace('conf ', '')
-    # # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
-    # tuple_name_event = await (sqlite_db.sql_read_name_course(id_event))
-    # # Распаковываем кортеж
-    # name_event = tuple_name_event[0]
-    await FSMConfirm_presense.name_event.set()
-    async with state.proxy() as data:
-        data['id_course'] = id_course
+    # Проверяем наличие курса
+    result = await sqlite_db.sql_check_exist_course(id_course)
+    # Если курс существует то запускаем машину состояний
+    if result is not None:
+        await FSMConfirm_presense.name_event.set()
+        async with state.proxy() as data:
+            data['id_course'] = id_course
 
-    await FSMConfirm_presense.next()
-    await callback_query.message.reply(
-        'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
-        reply_markup=keyboards.client_kb.kb_client_confirm_presense)
-    await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии',show_alert=True)
+        await FSMConfirm_presense.next()
+        await callback_query.message.reply(
+            'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
+            reply_markup=keyboards.client_kb.kb_client_confirm_presense)
+        await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии',show_alert=True)
+    else:
+        await callback_query.answer(' Данный курс был удален из базы данных\n'
+                                    'Обновите список курсов нажав кнопку На_что_можно_записаться',show_alert=True
+                               )
+        await state.finish()
 
 async def confirm_presense(message:types.Message,state:FSMContext):
     """
@@ -208,8 +213,8 @@ async def confirm_presense(message:types.Message,state:FSMContext):
         data['longitude'] = message.location.longitude
         data['event_mark'] = message.date
     # Обновляем данные в таблице, если айди пользователя и имя мероприятия есть в таблице
-    # Временный костыль
-    if not await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) == (0,):
+    # Если запись с такими условиями существует  то обновляем значениями
+    if await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) is not None:
         await sqlite_db.sql_confirm_presense_on_location(state)
         await state.finish()
         await message.answer(f'Подтверждение вашего присутствия принято', reply_markup=keyboards.client_kb.kb_client)
@@ -241,6 +246,7 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
                                     'Обновите список курсов нажав кнопку На_что_можно_записаться',show_alert=True
                                )
         await state.finish()
+        await callback_query.answer()
 
 
 
@@ -262,6 +268,7 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['last_name'] = message.contact.last_name
 
         # проверяем записывался ли человек на этот курс
+
         if await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) is None:
             await sqlite_db.sql_add_reg_on_event(state)
             await message.answer(f'Вы записаны на мероприятие', reply_markup=keyboards.client_kb.kb_client)
