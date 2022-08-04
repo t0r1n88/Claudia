@@ -194,6 +194,7 @@ async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
         id_participant = callback_query.from_user.id
         # Делаем запрос
         await sqlite_db.sql_cancel_reg_event(id_course,id_participant)
+        await callback_query.answer()
         await bot.send_message(callback_query.from_user.id,f'Регистрация отменена')
         # Подтверждаем завершение операции. Чтобы не крутились часы возле кнопки
         await callback_query.answer('Регистрация на мероприятие отменена',show_alert=True)
@@ -220,7 +221,9 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
         await callback_query.message.reply(
             'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
             reply_markup=keyboards.client_kb.kb_client_confirm_presense)
+        await callback_query.answer()
         await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии',show_alert=True)
+
     else:
         await callback_query.answer(' Данный курс был удален из базы данных\n'
                                     'Обновите список курсов нажав кнопку На_что_можно_записаться',show_alert=True
