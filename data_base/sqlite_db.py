@@ -1,6 +1,6 @@
 import sqlite3 as sq
 from create_bot import bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 import pandas as pd
 from io import BytesIO
 
@@ -82,24 +82,25 @@ async def sql_confirm_presense_on_location(state):
 
 async def sql_read_course(message):
     # Получаем все данные из таблицы Курсы в виде списка списков
-    for row in cur.execute('SELECT * FROM courses').fetchall():
-        # Формируем сообщение пользователю. Отправляем данные из таблицы
-        # row[1] это айди картинки на сервере телеграмма
-        # Проверяем признак event_mark, т.е. мероприятие это или нет.Если да то в дополнении к обычным данным
-        # Отправляем пользователю инлайн клавиатуру
-        if row[5] == 'нет':
-            await bot.send_photo(message.from_user.id, row[1],
-                                 f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
-        else:
-            # Создаем кнопки
-            inline_reg__event_button = InlineKeyboardButton(f'^^^Принять участие^^^', callback_data=f'reg {row[0]}')
-            inline_confirmed__event_button = InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',
-                                                                  callback_data=f'conf {row[0]}')
-            inline_del_reg_event_button = InlineKeyboardButton(f'^^^Отменить заявку на мероприятие^^^',callback_data=f'rem {row[0]}')
-            inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button).add(inline_del_reg_event_button)
-            await bot.send_photo(message.from_user.id, row[1],
-                                 f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
-                                 reply_markup=inline_event_kb)
+    return cur.execute('SELECT * FROM courses').fetchall()
+    # for row in cur.execute('SELECT * FROM courses').fetchall():
+    #     # Формируем сообщение пользователю. Отправляем данные из таблицы
+    #     # row[1] это айди картинки на сервере телеграмма
+    #     # Проверяем признак event_mark, т.е. мероприятие это или нет.Если да то в дополнении к обычным данным
+    #     # Отправляем пользователю инлайн клавиатуру
+    #     if row[5] == 'нет':
+    #         await bot.send_photo(message.from_user.id, row[1],
+    #                              f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
+    #     else:
+    #         # Создаем кнопки
+    #         inline_reg__event_button = InlineKeyboardButton(f'^^^Принять участие^^^', callback_data=f'reg {row[0]}')
+    #         inline_confirmed__event_button = InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',
+    #                                                               callback_data=f'conf {row[0]}')
+    #         inline_del_reg_event_button = InlineKeyboardButton(f'^^^Отменить заявку на мероприятие^^^',callback_data=f'rem {row[0]}')
+    #         inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button).add(inline_del_reg_event_button)
+    #         await bot.send_photo(message.from_user.id, row[1],
+    #                              f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
+    #                              reply_markup=inline_event_kb)
 
 async def sql_read_all_courses():
     """
@@ -154,8 +155,6 @@ async def sql_get_registered(course_id):
     #
     # return workbook
     # Поменять название мероприятия
-
-
     registered_df.to_excel(f'Список зарегистрировашихся на {name_event}.xlsx', index=False)
 
 async def sql_get_confirmed(course_id):

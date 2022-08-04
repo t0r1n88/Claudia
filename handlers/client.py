@@ -8,6 +8,7 @@ from data_base import sqlite_db
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
 from aiogram.utils.exceptions import Throttled
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 
@@ -127,7 +128,29 @@ async def course_menu(message: types.Message):
         await message.reply('Остановитесь! Подождите 2 секунды!')
     else:
         # если проверка на флуд пройдена то начинаем работу
-        await sqlite_db.sql_read_course(message)
+        # получаем список курсов
+        courses = await sqlite_db.sql_read_course(message)
+        # Отправляем пользователю каждый курс
+        for row in courses:
+            # Формируем сообщение пользователю. Отправляем данные из таблицы
+            # row[1] это айди картинки на сервере телеграмма
+            # Проверяем признак event_mark, т.е. мероприятие это или нет.Если да то в дополнении к обычным данным
+            # Отправляем пользователю инлайн клавиатуру
+            if row[5] == 'нет':
+                await bot.send_photo(message.from_user.id, row[1],
+                                     f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')
+            else:
+                # Создаем кнопки
+                inline_reg__event_button = InlineKeyboardButton(f'^^^Принять участие^^^', callback_data=f'reg {row[0]}')
+                inline_confirmed__event_button = InlineKeyboardButton(f'^^^Подтвердить присутствие^^^',
+                                                                      callback_data=f'conf {row[0]}')
+                inline_del_reg_event_button = InlineKeyboardButton(f'^^^Отменить заявку на мероприятие^^^',callback_data=f'rem {row[0]}')
+                inline_event_kb = InlineKeyboardMarkup().add(inline_reg__event_button).add(inline_confirmed__event_button).add(inline_del_reg_event_button)
+                await bot.send_photo(message.from_user.id, row[1],
+                                     f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}',
+                                     reply_markup=inline_event_kb)
+
+
 
 
 async def get_location(message: types.Message):
