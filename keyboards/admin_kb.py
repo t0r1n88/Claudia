@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 # Создаем кнопки
 button_load = KeyboardButton('/Загрузить')
-button_delete = KeyboardButton('/Удалить')
+button_delete = KeyboardButton('/Отображение_курсов')
 button_stat = KeyboardButton('/Отчетность')
 
 # Создаем клавиатуру

@@ -145,6 +145,22 @@ async def sql_get_confirmed(course_id):
     """
     return cur.execute('SELECT * FROM participants WHERE course_id == ?', (course_id,)).fetchall()
 
+async def sql_hide_course(id_course):
+    """
+    Функция для обновления поля visible у курса. Скрывает курс
+    """
+    cur.execute('UPDATE courses SET visible == ? WHERE course_id == ?',['нет',id_course])
+    base.commit()
+
+async def sql_show_course(id_course):
+    """
+    Функция для обновления поля visible у курса. Показывает курс
+    """
+    cur.execute('UPDATE courses SET visible == ? WHERE course_id == ?',['да',id_course])
+    base.commit()
+
+
+
 async def sql_delete_course(id_course):
     """
     Функция для удаления курса из базы данных

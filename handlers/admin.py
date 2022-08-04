@@ -184,17 +184,26 @@ async def load_event_visible_course(message:types.Message,state: FSMContext):
             await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
 
 
-# Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с del то функция выполнится
+# Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с hide то функция выполнится
 # Более понятное объяснение https://youtu.be/gpCIfQUbYlY?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
-@dp.callback_query_handler(lambda x: x.data and x.data.startswith('del '))
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('hide '))
 async def del_course_callback_run(callback_query: types.CallbackQuery):
-    deleted_course = callback_query.data.replace('del ', '')
+    id_course = callback_query.data.replace('hide ', '')
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
-    await sqlite_db.sql_delete_course(deleted_course)
-    await callback_query.answer(f'Курс  удален', show_alert=True)
+    await sqlite_db.sql_hide_course(id_course)
+    await callback_query.answer(f'Курс скрыт', show_alert=True)
     await callback_query.answer()
 
-async def delete_course(message: types.Message):
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('show '))
+async def del_course_callback_run(callback_query: types.CallbackQuery):
+    id_course = callback_query.data.replace('show ', '')
+    # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
+    await sqlite_db.sql_show_course(id_course)
+    await callback_query.answer(f'Курс отображается', show_alert=True)
+    await callback_query.answer()
+
+
+async def dysplay_course(message: types.Message):
     """
     Функция для удаления курса из базы данных
     """
@@ -206,11 +215,18 @@ async def delete_course(message: types.Message):
             # Создаем инлайн кнопку
             # inline_del_course_kb = InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}'))
             # Отправляем данные курса из таблицы
-            await bot.send_photo(message.from_user.id, course[1],
-                                 f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
+            await bot.send_message(message.from_user.id,f'{course[2]}')
             # Отправляем инлайн кнопку вместе с сообщением
             # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
-            await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
+            await bot.send_message(message.from_user.id,text='Нажмите кнопку чтобы отобразить или скрыть курс',
+                                   reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Отображать курс {course[2]}', callback_data=f'show {course[0]}')).add(InlineKeyboardButton(f'Скрыть курс {course[2]}', callback_data=f'hide {course[0]}')))
+
+            # await bot.send_photo(message.from_user.id, course[1],
+            #                      f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
+            # # Отправляем инлайн кнопку вместе с сообщением
+            # # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
+            # await bot.send_message(message.from_user.id,text='Нажмите кнопку для удаления курса',
+            #                        reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить курс {course[2]}', callback_data=f'del {course[0]}')))
 
 
 
@@ -444,6 +460,6 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(set_distance_event,state=FSMReportAdmin.distance_event)
     dp.register_message_handler(processing_report_participants,state=FSMReportAdmin.create_report)
 
-    dp.register_message_handler(delete_course, commands=['Удалить'])
+    dp.register_message_handler(dysplay_course, commands=['Отображение_курсов'])
     dp.register_message_handler(report_event,commands=['Отчетность'])
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
