@@ -38,6 +38,7 @@ class FSMAdmin(StatesGroup):
     description_course = State()
     how_sign_course = State()
     event_mark = State()
+    visible = State()
 
 class FSMReportAdmin(StatesGroup):
     """
@@ -160,13 +161,27 @@ async def load_event_mark_course(message:types.Message,state: FSMContext):
                 data['event_mark'] = check_message_text
             # Заканчиваем переходы по состояниям
             # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
+            # Переводим машину в следующее состояние
+            await FSMAdmin.next()
+            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
 
-            await sqlite_db.sql_add_course(state)
-            await message.answer('Данные курса(мероприятия) добавлены')
-
-            await state.finish()
         else:
             await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
+# Получаем от пользователя нужно ли показывать курс
+async def load_event_visible_course(message:types.Message,state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь является ли курс мероприятием
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        check_message_text = message.text.lower()
+        # проверка правильности ввода
+        if check_message_text == 'да' or check_message_text == 'нет':
+            async with state.proxy() as data:
+                data['visible'] = check_message_text
+            await sqlite_db.sql_add_course(state)
+            await message.answer('Данные курса(мероприятия) добавлены')
+            await state.finish()
+        else:
+            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
 
 
 # Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с del то функция выполнится
@@ -420,6 +435,7 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_description_course, state=FSMAdmin.description_course)
     dp.register_message_handler(load_how_sign_course, state=FSMAdmin.how_sign_course)
     dp.register_message_handler(load_event_mark_course,state=FSMAdmin.event_mark)
+    dp.register_message_handler(load_event_visible_course,state=FSMAdmin.visible)
     # Хэндлеры машины состояний посещаемости
     dp.register_message_handler(get_confirmed_callback_run,state=FSMReportAdmin.name_event)
     dp.register_message_handler(set_event_location,content_types=['location'],state=FSMReportAdmin.event_location)

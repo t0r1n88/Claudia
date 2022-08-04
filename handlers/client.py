@@ -129,13 +129,14 @@ async def course_menu(message: types.Message):
     else:
         # если проверка на флуд пройдена то начинаем работу
         # получаем список курсов
-        courses = await sqlite_db.sql_read_course(message)
+        courses = await sqlite_db.sql_read_all_courses()
         # Отправляем пользователю каждый курс
         for row in courses:
             # Формируем сообщение пользователю. Отправляем данные из таблицы
             # row[1] это айди картинки на сервере телеграмма
             # Проверяем признак event_mark, т.е. мероприятие это или нет.Если да то в дополнении к обычным данным
             # Отправляем пользователю инлайн клавиатуру
+
             if row[5] == 'нет':
                 await bot.send_photo(message.from_user.id, row[1],
                                      f'{row[2]}\nОписание курса: {row[3]}\n Условия записи на курс: {row[4]}')

@@ -22,7 +22,7 @@ def sql_start():
     # img картинку мы храним в виде file.id хранимого на серверах телеграмма
     base.execute(
         'CREATE TABLE IF NOT EXISTS courses(course_id INTEGER PRIMARY KEY AUTOINCREMENT, img TEXT,'
-        ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT)')
+        ' name_course TEXT, description_course TEXT, how_sign_course TEXT, event_mark TEXT,visible TEXT)')
     # Сохраняем эти изменения
     base.commit()
     # Создаем таблицу по учету участников мероприятия если ее нет
@@ -42,7 +42,7 @@ async def sql_add_course(state):
     async with state.proxy() as data:
         # Вставляем данные в таблицу
         cur.execute(
-            'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark) VALUES (?,?,?,?,?)',
+            'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark,visible) VALUES (?,?,?,?,?,?)',
             tuple(data.values()))
         base.commit()
 
@@ -80,9 +80,9 @@ async def sql_confirm_presense_on_location(state):
     base.commit()
 
 
-async def sql_read_course(message):
-    # Получаем все данные из таблицы Курсы в виде списка списков
-    return cur.execute('SELECT * FROM courses').fetchall()
+# async def sql_read_course(message):
+#     # Получаем все данные из таблицы Курсы в виде списка списков
+#     return cur.execute('SELECT * FROM courses').fetchall()
 
 async def sql_read_all_courses():
     """
