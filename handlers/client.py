@@ -221,10 +221,10 @@ async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state
 
         await FSMConfirm_presense.next()
         await callback_query.message.reply(
-            'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения напишите в чат слово отмена',
+            'Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии \nЧтобы отказать от подтверждения нажмите кнопку Отмена\n'
+            'Чтобы вернуться в главное меню нажмите кнопку Главное_меню',
             reply_markup=keyboards.client_kb.kb_client_confirm_presense)
-        await callback_query.answer()
-        await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии',show_alert=True)
+        await callback_query.answer('Нажмите кнопку Отправить где я,чтобы подтвердить свое присутствие на мероприятии', show_alert=True)
 
     else:
         await callback_query.answer(' Данный курс был удален из базы данных\n'
@@ -246,6 +246,7 @@ async def confirm_presense(message:types.Message,state:FSMContext):
     if await sqlite_db.sql_check_exists_app(data['id_course'], data['id_participant']) is not None:
         await sqlite_db.sql_confirm_presense_on_location(state)
         await state.finish()
+
         await message.answer(f'Подтверждение вашего присутствия принято', reply_markup=keyboards.client_kb.kb_client)
     else:
         await bot.send_message(message.from_user.id, f'Сначала зарегистрируйтесь на мероприятии',
@@ -266,7 +267,8 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
             data['id_course'] = id_course
         await FSMReg_event.next()
         await callback_query.message.reply(
-            'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, напишите в чат слово отмена',
+            'Нажмите кнопку Поделиться номером,чтобы зарегистрироваться \nЧтобы прекратить процесс регистрации, нажмите кнопку Отмена\n'
+            'Чтобы вернуться в главное меню нажмите кнопку Главное_меню',
             reply_markup=keyboards.client_kb.kb_client_reg)
         await callback_query.answer('Нажмите кнопку Поделиться номером,чтобы зарегистрироваться',show_alert=True)
     else:
@@ -313,7 +315,7 @@ def register_handlers_client(dp: Dispatcher):
     """
     Регистрируем хэндлеры клиента чтобы не писать над каждой функцией декоратор с командами
     """
-    dp.register_message_handler(command_start, commands=['start', 'help'])
+    dp.register_message_handler(command_start, commands=['start', 'help','Главное_меню'])
     dp.register_message_handler(cancel_handler_reg_event, state="*", commands='отмена')
     dp.register_message_handler(cancel_handler_reg_event, Text(equals='отмена', ignore_case=True), state="*")
     dp.register_message_handler(sign_event_callback_run,state=FSMReg_event.name_event)
