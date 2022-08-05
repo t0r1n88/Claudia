@@ -10,6 +10,8 @@ from aiogram.dispatcher.filters import Text
 from aiogram.utils.exceptions import Throttled
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+import datetime
+
 
 
 """*********************************КЛИЕНТСКАЯ ЧАСТЬ*************************************"""
@@ -275,19 +277,9 @@ async def sign_event_callback_run(callback_query: types.CallbackQuery,state:FSMC
         await state.finish()
         await callback_query.answer()
 
-
-
-async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
-    # получаем текущее состояние машины состояний
-    current_state = await state.get_state()
-    # Если машина не находится в каком либо состоянии то ничего не делаем, в противном случае завершаем машину состояний
-    if current_state is None:
-        return
-    await state.finish()
-    await message.reply('Процесс отменен',reply_markup=keyboards.client_kb.kb_client)
-
 async def sign_event_contact(message:types.Message,state:FSMContext):
     if message.from_user.id == message.contact.user_id:
+
         async with state.proxy() as data:
             data['id_participant'] = message.from_user.id
             data['phone'] = message.contact.phone_number
@@ -309,6 +301,14 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
     else:
         await bot.send_message(message.from_user.id, ' Отправьте СВОИ данные!')
 
+async def cancel_handler_reg_event(message: types.Message, state: FSMContext):
+    # получаем текущее состояние машины состояний
+    current_state = await state.get_state()
+    # Если машина не находится в каком либо состоянии то ничего не делаем, в противном случае завершаем машину состояний
+    if current_state is None:
+        return
+    await state.finish()
+    await message.reply('Процесс отменен',reply_markup=keyboards.client_kb.kb_client)
 def register_handlers_client(dp: Dispatcher):
     """
     Регистрируем хэндлеры клиента чтобы не писать над каждой функцией декоратор с командами
