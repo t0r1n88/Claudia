@@ -6,10 +6,10 @@ button_load = KeyboardButton('/Загрузить')
 button_delete = KeyboardButton('/Редактировать')
 button_stat = KeyboardButton('/Отчетность')
 btn_stop = KeyboardButton('/Стоп')
-btn_skip = KeyboardButton('/Пропустить')
+button_general_report = KeyboardButton('/Общая_отчетность')
 
 # Создаем клавиатуру основного меню администратора
-kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(button_load).add(button_delete).add(button_stat)
+kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(button_load).add(button_delete).add(button_stat).add(button_general_report)
 
 
 # Создаем клавиатуру отправки локации

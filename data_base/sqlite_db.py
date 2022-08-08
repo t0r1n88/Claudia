@@ -111,6 +111,15 @@ async def sql_read_all_courses():
         cur = await db.execute('SELECT * FROM courses')
         return await cur.fetchall()
 
+async def sql_read_all_app():
+    """
+    Функция для получения всех заявок
+    """
+    async with aiosqlite.connect('copp.db') as db:
+        cur = await db.execute('SELECT * FROM participants')
+        return await cur.fetchall()
+
+
 
 async def sql_read_name_course(id_course):
     """
@@ -165,6 +174,7 @@ async def sql_get_registered(course_id):
 #     # Поменять название мероприятия
 #
 #
+
 async def sql_get_confirmed(course_id):
     """
     Функция для получения заявок на определенное мероприятияе
@@ -213,7 +223,6 @@ async def sql_check_exist_course(course_id):
     async with aiosqlite.connect('copp.db') as db:
         result = await db.execute('SELECT course_id FROM courses WHERE course_id == ?',(course_id,))
         return result.fetchone()
-
 
 
 

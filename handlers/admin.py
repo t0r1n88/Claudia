@@ -12,6 +12,7 @@ from data_base import sqlite_db
 from keyboards import admin_kb
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import datetime
+import time
 from geopy.distance import geodesic as GD
 
 
@@ -544,6 +545,31 @@ async def edit_event_visible_course(message:types.Message,state: FSMContext):
         else:
             await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
+async def general_report(message:types.Message):
+    """
+    Функция для получения общей таблицы курсов и общей таблицы заявок
+    """
+    all_courses = await sqlite_db.sql_read_all_courses()
+    df_courses = pd.DataFrame(all_courses,columns=['ID_курса','Картинка курса','Название курса','Описание курса','Как записаться','Событие да/нет','Видимость в каталоге да/нет'])
+
+
+    all_app = await sqlite_db.sql_read_all_app()
+    df_app = pd.DataFrame(all_app, columns=['ID_заявки', 'ID_курса', 'ID_участника', 'Телефон', 'Имя', 'Фамилия'
+        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время отправки геометки'])
+
+    # Сохраняем датафреймы
+    # Получаем текущее время для того чтобы использовать в названии
+    t = time.localtime()
+    current_time = time.strftime('%H_%M_%S', t)
+    df_courses.to_excel(f'Список курсов ЦОПП {current_time}.xlsx',index=False)
+    df_app.to_excel(f'Общий список заявок на курсы ЦОПП {current_time}.xlsx',index=False)
+
+    # Отправляем полученные файлы в чат
+    with open(f'Список курсов ЦОПП {current_time}.xlsx', 'rb') as file_courses:
+        await bot.send_document(message.from_user.id, file_courses)
+    with open(f'Общий список заявок на курсы ЦОПП {current_time}.xlsx', 'rb') as file_app:
+        await bot.send_document(message.from_user.id, file_app)
+
 
 
 
@@ -578,5 +604,6 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(edit_event_mark_course,state=FSMEditCourseAdmin.event_mark)
     dp.register_message_handler(edit_event_visible_course,state=FSMEditCourseAdmin.visible)
 
+    dp.register_message_handler(general_report,commands=['Общая_отчетность'])
 
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
