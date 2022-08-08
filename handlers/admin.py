@@ -40,6 +40,16 @@ class FSMAdmin(StatesGroup):
     event_mark = State()
     visible = State()
 
+class FSMEditCourseAdmin(StatesGroup):
+    """
+    Класс для машины состояний редактирования курсов.
+    """
+    photo_course = State()
+    name_course = State()
+    description_course = State()
+    how_sign_course = State()
+    event_mark = State()
+
 class FSMReportAdmin(StatesGroup):
     """
     Класс в котором хранятся шаги машины состояний посещаемости
@@ -63,7 +73,6 @@ async def make_changes_command(message: types.Message):
     await bot.send_message(message.from_user.id, 'Ожидаю ваших команд', reply_markup=admin_kb.kb_admin_course)
     await message.delete()
 
-
 # Начало диалога загрузки нового курса
 # Для начала работы требуем прописать команду Загрузить. состояние машины состояний(ха) инициаизируется None
 # @dp.message_handler(commands='Загрузить',state=None)
@@ -73,7 +82,7 @@ async def load_course(message: types.Message):
         # Переводим машину состояний в первую стадию загрузка фото курса
         await FSMAdmin.photo_course.set()
         # Пишем сообщение пользователю, что ему нужно загрузить фото
-        await message.reply('Загрузите фото курса\nЧтобы прекратить загрузку напишите в чат слово отмена')
+        await message.reply('Загрузите фото курса\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Добавляем обязательную кнопку для выхода из машины состояний
@@ -81,14 +90,14 @@ async def load_course(message: types.Message):
 # 2 декоратора нужны чтобы можно было отменить как прописав команду через \ так и просто написав слово отмена
 # @dp.message_handler(state="*",commands='отмена')
 # @dp.message_handler(Text(equals='отмена',ignore_case=True),state="*")
-async def cancel_handler_load_course(message: types.Message, state: FSMContext):
+async def admin_cancel_handler_load_course(message: types.Message, state: FSMContext):
     # получаем текущее состояние машины состояний
     current_state = await state.get_state()
     # Если машина не находится в каком либо состоянии то ничего не делаем, в противном случае завершаем машину состояний
     if current_state is None:
         return
     await state.finish()
-    await message.reply('Загрузка курса(события) отменена')
+    await message.reply('Процесс прерван',reply_markup=admin_kb.kb_admin_course)
 
 
 # получаем ответ пользователя и записываем в словарь
@@ -103,7 +112,7 @@ async def load_photo_course(message: types.Message, state: FSMContext):
             # Переводим машину состояний в следующую фазу
         await FSMAdmin.next()
         # Сообщаем пользователю что нужно ввести название курса
-        await message.reply('Введите название курса\nЧтобы прекратить загрузку напишите в чат слово отмена')
+        await message.reply('Введите название курса\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Получаем от пользователя название курса
@@ -117,7 +126,7 @@ async def load_name_course(message: types.Message, state: FSMContext):
             data['name_course'] = message.text
         await FSMAdmin.next()
         # Сообщаем пользователю что нужно ввести описание курса
-        await message.reply('Введите описание курса\nЧтобы прекратить загрузку напишите в чат слово отмена')
+        await message.reply('Введите описание курса\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Получаем от пользователя описание курса
@@ -131,7 +140,7 @@ async def load_description_course(message: types.Message, state: FSMContext):
             data['description_course'] = message.text
         await FSMAdmin.next()
         # Сообщаем пользователю что нужно ввести сведения о том кто может записаться и как записаться
-        await message.reply('Введите кто,как и на каких условиях может записаться на курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
+        await message.reply('Введите кто,как и на каких условиях может записаться на курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Получаем от пользователя описание того как записаться на курс
@@ -146,7 +155,7 @@ async def load_how_sign_course(message: types.Message, state: FSMContext):
         # Переводим машину в следующее состояние
         await FSMAdmin.next()
         # Сообщаем пользователю что нужно ввести сведения о типе мероприятия
-        await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
+        await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Получаем от пользователя явлется ли курс мероприятием
@@ -163,7 +172,7 @@ async def load_event_mark_course(message:types.Message,state: FSMContext):
             # После выполнения этой команды словарь data очищается.Поэтому нужно сохранить данные
             # Переводим машину в следующее состояние
             await FSMAdmin.next()
-            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
+            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
         else:
             await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
@@ -181,13 +190,13 @@ async def load_event_visible_course(message:types.Message,state: FSMContext):
             await message.answer('Данные курса(мероприятия) добавлены')
             await state.finish()
         else:
-            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово отмена')
+            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
 
 # Декоратор для ответа на  команду на удаление. Т.е если запрос будет не пустой и он будет начинаться с hide то функция выполнится
 # Более понятное объяснение https://youtu.be/gpCIfQUbYlY?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('hide '))
-async def del_course_callback_run(callback_query: types.CallbackQuery):
+async def hide_course_callback_run(callback_query: types.CallbackQuery):
     id_course = callback_query.data.replace('hide ', '')
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
     await sqlite_db.sql_hide_course(id_course)
@@ -195,7 +204,7 @@ async def del_course_callback_run(callback_query: types.CallbackQuery):
     await callback_query.answer()
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('show '))
-async def del_course_callback_run(callback_query: types.CallbackQuery):
+async def show_course_callback_run(callback_query: types.CallbackQuery):
     id_course = callback_query.data.replace('show ', '')
     # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
     await sqlite_db.sql_show_course(id_course)
@@ -218,8 +227,12 @@ async def dysplay_course(message: types.Message):
             await bot.send_message(message.from_user.id,f'{course[2]}')
             # Отправляем инлайн кнопку вместе с сообщением
             # await bot.send_message(message.from_user.id, text='^^^',reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {course[1]}', callback_data=f'del {course[1]}')))
-            await bot.send_message(message.from_user.id,text='Нажмите кнопку чтобы отобразить или скрыть курс',
-                                   reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Отображать курс {course[2]}', callback_data=f'show {course[0]}')).add(InlineKeyboardButton(f'Скрыть курс {course[2]}', callback_data=f'hide {course[0]}')))
+            await bot.send_message(message.from_user.id,text='Нажмите кнопку чтобы отобразить,скрыть,изменить курс',
+                                   reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Отображать курс {course[2]}', callback_data=f'show {course[0]}')).add(InlineKeyboardButton(f'Скрыть курс {course[2]}', callback_data=f'hide {course[0]}')).add(
+                                       InlineKeyboardButton(f'Изменить курс {course[2]}',
+                                                            callback_data=f'edit {course[0]}'))
+                                   )
+
 
             # await bot.send_photo(message.from_user.id, course[1],
             #                      f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
@@ -289,7 +302,7 @@ async def get_confirmed_callback_run(callback_query: types.CallbackQuery,state:F
     # Переходим на следующий шаг
     await FSMReportAdmin.next()
     # Отправляем запрос на локацию
-    await callback_query.message.reply('Нажмите кнопку Отправить локацию мероприятия\n чтобы прекратить создание отчета напишите в чат слово отмена',
+    await callback_query.message.reply('Нажмите кнопку Отправить локацию мероприятия\n чтобы прекратить создание отчета напишите в чат слово стоп',
                                        reply_markup=keyboards.admin_kb.kb_admin_event_location)
     await callback_query.answer()
 async def set_event_location(message:types.Message,state:FSMContext):
@@ -332,7 +345,7 @@ async def set_time_end_event(message:types.Message,state:FSMContext):
             data['time_end_event'] = time_end_event
         await FSMReportAdmin.next()
         await message.reply('Введите расстояние в метрах, все участники расстояние между геометками которых и геометкой мероприятия будут меньше этого значения\n будут считаться посетившими мероприятие \n'
-                        'Например 200. Не забывайте что погрешность геолокации в среднем 50 метров')
+                        'Например 200. Не забывайте что погрешность геолокации в среднем 150 метров')
 
     except ValueError:
         await message.reply('Проверьте корректность введенных данных!!!в формате день.месяц.год час.минута.секунда\n'
@@ -436,6 +449,41 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         await state.finish()
         await bot.send_message(message.from_user.id,'Скачайте нужный файл',reply_markup=keyboards.admin_kb.kb_admin_course)
 
+# Обработка события редактирования курса
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('edit '),state=None)
+async def get_edit_course_callback_run(callback_query: types.CallbackQuery):
+    # Получаем айди нужного курса
+    id_course = callback_query.data.replace('edit ', '')
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if callback_query.from_user.id == ID:
+        # Переводим машину состояний в первую стадию загрузка фото курса
+        await FSMEditCourseAdmin.photo_course.set()
+        # Пишем сообщение пользователю, что ему нужно загрузить фото
+        await callback_query.message.reply('Загрузите фото курса\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
+async def edit_photo_course(message: types.Message, state: FSMContext):
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Через контекстный менеджер получаем записываем в словарь  айди загруженной картинки
+            data['img_course'] = message.photo[0].file_id
+            # Переводим машину состояний в следующую фазу
+        await FSMEditCourseAdmin.next()
+        # Сообщаем пользователю что нужно ввести название курса
+        await message.reply('Введите название курса\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
+async def edit_name_course(message: types.Message, state: FSMContext):
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        # К Через контекстный менеджер записываем с словарь название курса
+        async with state.proxy() as data:
+            # Извлекаем из сообщения атрибут text
+            data['name_course'] = message.text
+        await FSMEditCourseAdmin.next()
+        # Сообщаем пользователю что нужно ввести описание курса
+        await message.reply('Введите описание курса\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
+
 
 
 
@@ -443,8 +491,8 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_course, commands='Загрузить', state=None)
-    dp.register_message_handler(cancel_handler_load_course, state="*", commands='отмена')
-    dp.register_message_handler(cancel_handler_load_course, Text(equals='отмена', ignore_case=True), state="*")
+    # dp.register_message_handler(cancel_handler_load_course, state="*", commands='отмена')
+    dp.register_message_handler(admin_cancel_handler_load_course, Text(equals='стоп', ignore_case=True), state="*")
     # Хэндлеры машины состояний загрузки курсов
     dp.register_message_handler(load_photo_course, content_types=['photo'], state=FSMAdmin.photo_course)
     dp.register_message_handler(load_name_course, state=FSMAdmin.name_course)
@@ -459,6 +507,10 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(set_time_end_event,state=FSMReportAdmin.time_end_event)
     dp.register_message_handler(set_distance_event,state=FSMReportAdmin.distance_event)
     dp.register_message_handler(processing_report_participants,state=FSMReportAdmin.create_report)
-    dp.register_message_handler(dysplay_course, commands=['Отображение_курсов'])
+    dp.register_message_handler(dysplay_course, commands=['Редактировать'])
     dp.register_message_handler(report_event,commands=['Отчетность'])
+    # Хэндлеры машины состояний редактирования курсов
+    dp.register_message_handler(edit_photo_course, content_types=['photo'], state=FSMEditCourseAdmin.photo_course)
+
+
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
