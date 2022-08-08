@@ -49,6 +49,20 @@ async def sql_add_course(state):
             'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark,visible) VALUES (?,?,?,?,?,?)',
             result)
         await db.commit()
+
+async def sql_update_course(state):
+    """
+    Функция для обновления записи о курсе в базе данных
+    """
+    async with state.proxy() as data:
+        result = tuple(data.values())
+        # Вставляем данные в таблицу
+    async with aiosqlite.connect('copp.db') as db:
+        await db.execute('UPDATE courses SET img == ?,name_course == ?,description_course=?,how_sign_course == ?,event_mark == ?,visible == ? WHERE course_id == ?'
+                         ,[result[1],result[2],result[3],result[4],result[5],result[6],result[0]])
+
+        await db.commit()
+
 #
 async def sql_check_exists_app(course_id,id_user):
     """

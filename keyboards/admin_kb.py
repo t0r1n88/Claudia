@@ -11,8 +11,6 @@ btn_skip = KeyboardButton('/Пропустить')
 # Создаем клавиатуру основного меню администратора
 kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(button_load).add(button_delete).add(button_stat)
 
-# Создаем клавиатуру меню редактирования курсов
-kb_admin_edit_course = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_skip).add(btn_stop)
 
 # Создаем клавиатуру отправки локации
 

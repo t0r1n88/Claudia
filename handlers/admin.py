@@ -44,11 +44,13 @@ class FSMEditCourseAdmin(StatesGroup):
     """
     Класс для машины состояний редактирования курсов.
     """
+    id_course = State()
     photo_course = State()
     name_course = State()
     description_course = State()
     how_sign_course = State()
     event_mark = State()
+    visible = State()
 
 class FSMReportAdmin(StatesGroup):
     """
@@ -450,16 +452,20 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         await bot.send_message(message.from_user.id,'Скачайте нужный файл',reply_markup=keyboards.admin_kb.kb_admin_course)
 
 # Обработка события редактирования курса
-@dp.callback_query_handler(lambda x: x.data and x.data.startswith('edit '),state=None)
-async def get_edit_course_callback_run(callback_query: types.CallbackQuery):
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('edit '))
+async def get_edit_course_callback_run(callback_query: types.CallbackQuery,state=FSMContext):
     # Получаем айди нужного курса
     id_course = callback_query.data.replace('edit ', '')
     # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
     if callback_query.from_user.id == ID:
-        # Переводим машину состояний в первую стадию загрузка фото курса
-        await FSMEditCourseAdmin.photo_course.set()
+        # Переводим машину состояний в первую стадию загрузка айди курса
+        await FSMEditCourseAdmin.id_course.set()
+        async with state.proxy() as data:
+            data['id_course'] = id_course
+        await FSMEditCourseAdmin.next()
         # Пишем сообщение пользователю, что ему нужно загрузить фото
         await callback_query.message.reply('Загрузите фото курса\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
 
 async def edit_photo_course(message: types.Message, state: FSMContext):
     # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
@@ -484,6 +490,61 @@ async def edit_name_course(message: types.Message, state: FSMContext):
         await message.reply('Введите описание курса\nЧтобы прекратить редактирование напишите в чат слово стоп')
 
 
+async def edit_description_course(message: types.Message, state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь описание курса
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Извлекаем из сообщения атрибут text
+            data['description_course'] = message.text
+        await FSMEditCourseAdmin.next()
+        # Сообщаем пользователю что нужно ввести сведения о том кто может записаться и как записаться
+        await message.reply('Введите кто,как и на каких условиях может записаться на курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+async def edit_how_sign_course(message: types.Message, state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь как записаться на курс
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Извлекаем из сообщения атрибут text
+            data['how_sign_course'] = message.text
+        # Переводим машину в следующее состояние
+        await FSMEditCourseAdmin.next()
+        # Сообщаем пользователю что нужно ввести сведения о типе мероприятия
+        await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+async def edit_event_mark_course(message:types.Message,state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь является ли курс мероприятием
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        check_message_text = message.text.lower()
+        # проверка правильности ввода
+        if check_message_text == 'да' or check_message_text == 'нет':
+            async with state.proxy() as data:
+                data['event_mark'] = check_message_text
+            await FSMEditCourseAdmin.next()
+            await message.reply(
+                'Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+        else:
+            await message.reply('Введите да, если это событие\nВведите нет,если это обычный курс')
+
+async def edit_event_visible_course(message:types.Message,state: FSMContext):
+    # К Через контекстный менеджер записываем в словарь является ли курс мероприятием
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        check_message_text = message.text.lower()
+        # проверка правильности ввода
+        if check_message_text == 'да' or check_message_text == 'нет':
+            async with state.proxy() as data:
+                data['visible'] = check_message_text
+            await sqlite_db.sql_update_course(state)
+            await message.answer('Данные курса(мероприятия) отредактированы!')
+            await state.finish()
+        else:
+            await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+
 
 
 
@@ -492,7 +553,7 @@ async def edit_name_course(message: types.Message, state: FSMContext):
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_course, commands='Загрузить', state=None)
     # dp.register_message_handler(cancel_handler_load_course, state="*", commands='отмена')
-    dp.register_message_handler(admin_cancel_handler_load_course, Text(equals='стоп', ignore_case=True), state="*")
+    dp.register_message_handler(admin_cancel_handler_load_course,Text(equals='стоп', ignore_case=True), state="*")
     # Хэндлеры машины состояний загрузки курсов
     dp.register_message_handler(load_photo_course, content_types=['photo'], state=FSMAdmin.photo_course)
     dp.register_message_handler(load_name_course, state=FSMAdmin.name_course)
@@ -511,6 +572,11 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(report_event,commands=['Отчетность'])
     # Хэндлеры машины состояний редактирования курсов
     dp.register_message_handler(edit_photo_course, content_types=['photo'], state=FSMEditCourseAdmin.photo_course)
+    dp.register_message_handler(edit_name_course,state=FSMEditCourseAdmin.name_course)
+    dp.register_message_handler(edit_description_course,state=FSMEditCourseAdmin.description_course)
+    dp.register_message_handler(edit_how_sign_course,state=FSMEditCourseAdmin.how_sign_course)
+    dp.register_message_handler(edit_event_mark_course,state=FSMEditCourseAdmin.event_mark)
+    dp.register_message_handler(edit_event_visible_course,state=FSMEditCourseAdmin.visible)
 
 
     dp.register_message_handler(make_changes_command, commands=['admin'], is_chat_admin=True)
