@@ -111,6 +111,15 @@ async def sql_read_all_courses():
         cur = await db.execute('SELECT * FROM courses')
         return await cur.fetchall()
 
+async def sql_read_visible_courses():
+    """
+    Функция для получения из базы данных видимых курсов
+    """
+    async with aiosqlite.connect('copp.db') as db:
+        cur = await db.execute('SELECT * FROM courses WHERE visible=="да"')
+        return await cur.fetchall()
+
+
 async def sql_read_all_app():
     """
     Функция для получения всех заявок
