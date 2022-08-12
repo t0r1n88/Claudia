@@ -203,7 +203,6 @@ async def cancel_registered_callback_run(callback_query:types.CallbackQuery):
 
 
 
-
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('conf '))
 async def confirm_presence_callback_run(callback_query:types.CallbackQuery,state:FSMContext):
     """
@@ -287,6 +286,7 @@ async def sign_event_contact(message:types.Message,state:FSMContext):
             data['phone'] = message.contact.phone_number
             data['first_name'] = message.contact.first_name
             data['last_name'] = message.contact.last_name
+            data['reg_time_mark'] = message.date
 
         # проверяем записывался ли человек на этот курс
 

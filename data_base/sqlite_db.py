@@ -30,7 +30,7 @@ def sql_start():
     # Создаем таблицу по учету участников мероприятия если ее нет
     base.execute(
         'CREATE TABLE IF NOT EXISTS participants(app_id INTEGER PRIMARY KEY, course_id TEXT, id_participant TEXT,'
-        'phone TEXT, first_name TEXT, last_name TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
+        'phone TEXT, first_name TEXT, last_name TEXT,reg_time_mark TEXT,latitude TEXT, longitude TEXT,time_mark TEXT)')
 
     base.commit()
 
@@ -83,7 +83,7 @@ async def sql_add_reg_on_event(state):
         result = tuple(data.values())
     async with aiosqlite.connect('copp.db') as db:
 
-        await db.execute('INSERT INTO participants(course_id,id_participant,phone,first_name,last_name) VALUES (?,?,?,?,?)', result)
+        await db.execute('INSERT INTO participants(course_id,id_participant,phone,first_name,last_name,reg_time_mark) VALUES (?,?,?,?,?,?)', result)
         await db.commit()
 
 async def sql_confirm_presense_on_location(state):
@@ -151,7 +151,7 @@ async def sql_get_registered(course_id):
     # Получаем записи относящиеся к нужному мероприятию
     selection_df = df[df['course_id'] == course_id]
     # Отбираем нужные колонки
-    registered_df = selection_df[['app_id', 'course_id', 'id_participant', 'phone', 'first_name', 'last_name']].copy()
+    registered_df = selection_df[['app_id', 'course_id', 'id_participant', 'phone', 'first_name', 'last_name','reg_time_mark']].copy()
 
     # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
     tuple_name_event = await (sql_read_name_course(course_id))
@@ -161,7 +161,7 @@ async def sql_get_registered(course_id):
     registered_df['course_id'] = name_event
     # Переименовываем колонки
     registered_df.columns = ['ID заявки', 'Название мероприятия', 'Telegram ID пользователя', 'Телефон', 'Имя',
-                             'Фамилия']
+                             'Фамилия','Дата регистрации']
     registered_df.to_excel(f'Список зарегистрировашихся на {name_event}.xlsx', index=False)
 
 #     # На будущее чтобы попробовать избежать сохранения на диске.

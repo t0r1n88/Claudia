@@ -378,7 +378,7 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
     # Получаем список кортежей с заявками на нужное мероприятие
         all_app = await sqlite_db.sql_get_confirmed(data['id_course'])
         # превращаем его в датафрейм
-        df = pd.DataFrame(all_app,columns=['app_id','id_course','id_participant','phone','first_name','last_name'
+        df = pd.DataFrame(all_app,columns=['app_id','id_course','id_participant','phone','first_name','last_name','reg_time_mark'
             ,'latitude','longitude','time_mark'])
 
         # Делаем запрос чтобы получить название мероприятия распаковывая полученный кортеж
@@ -388,8 +388,11 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         # Присваиваем колонке с айди курса -его название
         df['id_course'] = name_event
 
-        # конвертируем колонку time_mark к формату времени
+        # конвертируем колонку reg_time_event,time_mark к формату времени
         df['time_mark'] = pd.to_datetime(df['time_mark'])
+        df['reg_time_mark'] = pd.to_datetime(df['reg_time_mark'])
+
+
         # сохраняем в переменные даты начала и окончания мероприятия,чтобы было легче проверять
         begin_date = data['time_begin_event']
         end_date = data['time_end_event']
@@ -398,7 +401,6 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         # time_end_event = datetime.datetime.strptime(end_date, "%d.%m.%Y %H.%M.%S")
         time_begin_event = data['time_begin_event']
         time_end_event = data['time_end_event']
-
 
 
         # Добавляем колонки из data и создаем колонки в датафрейме
@@ -424,9 +426,9 @@ async def processing_report_participants(message:types.Message,state:FSMContext)
         # Меняем названия колонок
         df.rename(columns={'app_id': 'Номер_заявки', 'id_course': 'Название_мероприятия', 'id_participant': 'id_участника',
                            'phone': 'Телефон',
-                           'first_name': 'Имя', 'last_name': 'Фамилия', 'latitude': 'Широта_геометки_участника',
+                           'first_name': 'Имя', 'last_name': 'Фамилия','reg_time_mark':'Дата_регистрации', 'latitude': 'Широта_геометки_участника',
                            'longitude': 'Долгота_геометки_участника',
-                           'time_mark': 'Дата_время_подтверждения',
+                           'time_mark': 'Дата_подтверждения',
                            'event_location_latitude': 'Широта_геометки_мероприятия',
                            'event_location_longitude': 'Долгота_геометка_мероприятия',
                            'event_location': 'Геометка_мероприятия', 'location': 'Геометка_участника',
@@ -554,8 +556,8 @@ async def general_report(message:types.Message):
 
 
     all_app = await sqlite_db.sql_read_all_app()
-    df_app = pd.DataFrame(all_app, columns=['ID_заявки', 'ID_курса', 'ID_участника', 'Телефон', 'Имя', 'Фамилия'
-        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время отправки геометки'])
+    df_app = pd.DataFrame(all_app, columns=['ID_заявки', 'ID_курса', 'ID_участника', 'Телефон', 'Имя', 'Фамилия','Время регистрации'
+        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время подтверждения присутствия'])
 
     # Приводим к одному типу данных колонку ID курса чтобы слияние прошло корректно
     df_courses['ID_курса'] = df_courses['ID_курса'].astype(int)
@@ -566,8 +568,8 @@ async def general_report(message:types.Message):
     # Удаляем лишние колонки
     named_course_df.drop(columns=['Картинка курса','Описание курса','Как записаться','Событие да/нет','Видимость в каталоге да/нет'],inplace=True)
     # Меняем порядок колонок
-    named_course_df = named_course_df.reindex(columns=['ID_заявки','Название курса','ID_курса','Телефон', 'Имя', 'Фамилия'
-        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время отправки геометки'])
+    named_course_df = named_course_df.reindex(columns=['ID_заявки','Название курса','ID_курса','Телефон', 'Имя', 'Фамилия','Время регистрации'
+        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время подтверждения присутствия'])
 
     # Сохраняем датафреймы
     # Получаем текущее время для того чтобы использовать в названии
@@ -581,8 +583,6 @@ async def general_report(message:types.Message):
         await bot.send_document(message.from_user.id, file_courses)
     with open(f'Общий список заявок на курсы ЦОПП {current_time}.xlsx', 'rb') as file_app:
         await bot.send_document(message.from_user.id, file_app)
-
-
 
 
 
