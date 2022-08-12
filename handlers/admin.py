@@ -557,12 +557,24 @@ async def general_report(message:types.Message):
     df_app = pd.DataFrame(all_app, columns=['ID_заявки', 'ID_курса', 'ID_участника', 'Телефон', 'Имя', 'Фамилия'
         , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время отправки геометки'])
 
+    # Приводим к одному типу данных колонку ID курса чтобы слияние прошло корректно
+    df_courses['ID_курса'] = df_courses['ID_курса'].astype(int)
+    df_app['ID_курса'] = df_app['ID_курса'].astype(int)
+    # мержим 2 датафрейма чтобы в вместо айди курса показывалось его название
+
+    named_course_df = df_app.merge(df_courses,how='inner',left_on='ID_курса',right_on='ID_курса')
+    # Удаляем лишние колонки
+    named_course_df.drop(columns=['Картинка курса','Описание курса','Как записаться','Событие да/нет','Видимость в каталоге да/нет'],inplace=True)
+    # Меняем порядок колонок
+    named_course_df = named_course_df.reindex(columns=['ID_заявки','Название курса','ID_курса','Телефон', 'Имя', 'Фамилия'
+        , 'Широта геометки пользователя', 'Долгота геометки пользователя', 'Время отправки геометки'])
+
     # Сохраняем датафреймы
     # Получаем текущее время для того чтобы использовать в названии
     t = time.localtime()
     current_time = time.strftime('%H_%M_%S', t)
     df_courses.to_excel(f'Список курсов ЦОПП {current_time}.xlsx',index=False)
-    df_app.to_excel(f'Общий список заявок на курсы ЦОПП {current_time}.xlsx',index=False)
+    named_course_df.to_excel(f'Общий список заявок на курсы ЦОПП {current_time}.xlsx',index=False)
 
     # Отправляем полученные файлы в чат
     with open(f'Список курсов ЦОПП {current_time}.xlsx', 'rb') as file_courses:
