@@ -71,7 +71,7 @@ async def working_regime(message: types.Message):
     else:
         # если проверка на флуд пройдена то начинаем работу
         try:
-            await bot.send_message(message.from_user.id, 'Пн-Пт с 9:00 до 18:00, Сб-Вс выходные')
+            await bot.send_message(message.from_user.id, 'Пн-Пт с 8:00 до 17:00,Обед с 12:00 до 13:00, Сб-Вс выходные')
             # await message.delete()
         except:
             await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
@@ -105,7 +105,7 @@ async def adress_copp(message: types.Message):
         # если проверка на флуд пройдена то начинаем работу
         try:
             await bot.send_message(message.from_user.id,
-                                   'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
+                                   'Адрес: г. Улан-Удэ, Гагарина 28а,\nРабочий телефон: +7(3012)56-10-88\n e-mail copp03@mail.ru')
             # await message.delete()
         except:
             await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
