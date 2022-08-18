@@ -110,14 +110,29 @@ async def adress_copp(message: types.Message):
         except:
             await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
 
+async def news_menu(message:types.Message):
+    """
+    Функция для получения новостей ЦОПП
+    """
+    try:
+        # Execute throttling manager with rate-limit equal to 2 seconds for key "start"
+        await dp.throttle('Новости', rate=2)
+    except Throttled:
+        # If request is throttled, the `Throttled` exception will be raised
+        await message.reply('Остановитесь! Подождите 2 секунды!')
+    else:
+        # если проверка на флуд пройдена то начинаем работу
+        # получаем список новостей
+        news = await sqlite_db.sql_read_news()
+        # Отправляем пользователю новости
+        # Формируем сообщение пользователю. Отправляем данные из таблицы
+        # row[1] это айди картинки на сервере телеграмма
+        for row in news:
+            await bot.send_photo(message.from_user.id, row[1],
+                                 f'{row[2]}')
 
-    #Старый вариант
-    # try:
-    #     await bot.send_message(message.from_user.id,
-    #                            'Адрес: г. Улан-Удэ, Гагарина 28а,Рабочий телефон: +7(3012)56-10-88')
-    #     await message.delete()
-    # except:
-    #     await message.reply('Общение с ботом через ЛС, напишите ему:\nhttps://t.me/Application_to_COPP_BOT')
+
+
 
 
 #
@@ -327,6 +342,7 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(working_regime, commands=['Режим_работы'])
     dp.register_message_handler(adress_copp, commands=['Контакты'])
     dp.register_message_handler(course_menu, commands=['На_что_можно_записаться'])
+    dp.register_message_handler(news_menu,commands=['Новости'])
 
 
 

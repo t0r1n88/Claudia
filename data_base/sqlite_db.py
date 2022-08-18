@@ -34,6 +34,11 @@ def sql_start():
 
     base.commit()
 
+    # Создаем таблицу для новостей
+    base.execute(
+        'CREATE TABLE IF NOT EXISTS news(news_id INTEGER PRIMARY KEY,img TEXT,description_news TEXT,date_news TEXT)')
+    base.commit()
+
 # # Создаем функцию для добавления курса
 async def sql_add_course(state):
     """
@@ -232,6 +237,18 @@ async def sql_check_exist_course(course_id):
     async with aiosqlite.connect('copp.db') as db:
         result = await db.execute('SELECT course_id FROM courses WHERE course_id == ?',(course_id,))
         return result.fetchone()
+
+async def sql_read_news():
+    """
+    Функция для получения списка новостей, ограниченно 3 последними по времени записями.Это сделано
+    для удобства пользователя.
+    """
+    async with aiosqlite.connect('copp.db') as db:
+        result = await db.execute('SELECT * FROM news')
+        return await result.fetchall()
+
+
+
 
 
 
