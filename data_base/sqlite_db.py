@@ -49,10 +49,21 @@ async def sql_add_course(state):
         result = tuple(data.values())
         # Вставляем данные в таблицу
     async with aiosqlite.connect('copp.db') as db:
-
         await db.execute(
             'INSERT INTO courses(img,name_course,description_course,how_sign_course,event_mark,visible) VALUES (?,?,?,?,?,?)',
             result)
+        await db.commit()
+
+async def sql_add_news(state):
+    """
+    Функция для добавления в базу данных новости
+    """
+    async with state.proxy() as data:
+        result = tuple(data.values())
+    async with aiosqlite.connect('copp.db') as db:
+        await db.execute(
+            'INSERT INTO news(img,description_news,date_news) VALUES (?,?,?)',result
+        )
         await db.commit()
 
 async def sql_update_course(state):

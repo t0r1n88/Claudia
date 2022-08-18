@@ -65,6 +65,12 @@ class FSMReportAdmin(StatesGroup):
     distance_event = State()
     create_report = State()
 
+class FSMLoadNews(StatesGroup):
+    """
+    Класс в котором хранятся шаги машины состояний создания новости
+    """
+    img_news = State()
+    description_news = State()
 
 # проверяем пользователя на права администратора в группе
 # @dp.message_handler(commands=['admin'],is_chat_admin=True)
@@ -101,7 +107,6 @@ async def admin_cancel_handler_load_course(message: types.Message, state: FSMCon
         return
     await state.finish()
     await message.reply('Процесс прерван',reply_markup=admin_kb.kb_admin_course)
-
 
 # получаем ответ пользователя и записываем в словарь
 # ограничиваем загрузку только фото и указываем что машина состояний должна находиться в стадии photo_course
@@ -547,6 +552,39 @@ async def edit_event_visible_course(message:types.Message,state: FSMContext):
         else:
             await message.reply('Введите да, чтобы сделать курс видимым\nВведите нет,если чтобы скрыть курс\nЧтобы прекратить загрузку напишите в чат слово стоп')
 
+async def load_news(message:types.Message):
+    """
+    Функция для начала загрузки новости.Старт машины состояний
+    """
+    if message.from_user.id == ID:
+        # Переводим машину состояний в первую стадию загрузка фото курса
+        await FSMLoadNews.img_news.set()
+        # Пишем сообщение пользователю, что ему нужно загрузить фото
+        await message.reply('Загрузите фото новости\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+
+async def load_img_news(message: types.Message, state: FSMContext):
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Через контекстный менеджер получаем записываем в словарь  айди загруженной картинки
+            data['img_news'] = message.photo[0].file_id
+            # Переводим машину состояний в следующую фазу
+        await FSMLoadNews.next()
+        # Сообщаем пользователю что нужно ввести название курса
+        await message.reply('Введите краткое описание новости вместе с ссылкой на исходный сайт\nЧтобы прекратить загрузку напишите в чат слово стоп')
+
+async def load_description_news(message:types.Message,state: FSMContext):
+
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            data['description_news'] = message.text
+            data['date_news'] = message.date
+        await sqlite_db.sql_add_news(state)
+        await message.answer('Новость добавлена!')
+        await state.finish()
+
 async def general_report(message:types.Message):
     """
     Функция для получения общей таблицы курсов и общей таблицы заявок
@@ -587,6 +625,8 @@ async def general_report(message:types.Message):
 
 
 
+
+
 # регистрируем хендлеры
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_course, commands='Загрузить', state=None)
@@ -615,6 +655,12 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(edit_how_sign_course,state=FSMEditCourseAdmin.how_sign_course)
     dp.register_message_handler(edit_event_mark_course,state=FSMEditCourseAdmin.event_mark)
     dp.register_message_handler(edit_event_visible_course,state=FSMEditCourseAdmin.visible)
+
+    # Хэндлеры машины состояний создания новости
+    dp.register_message_handler(load_news,commands=['Создать_новость'])
+    dp.register_message_handler(load_img_news,content_types=['photo'], state=FSMLoadNews.img_news)
+    dp.register_message_handler(load_description_news,state=FSMLoadNews.description_news)
+
 
     dp.register_message_handler(general_report,commands=['Общая_отчетность'])
 
