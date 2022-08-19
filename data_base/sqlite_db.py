@@ -255,7 +255,7 @@ async def sql_read_news():
     для удобства пользователя.
     """
     async with aiosqlite.connect('copp.db') as db:
-        result = await db.execute('SELECT * FROM news')
+        result = await db.execute('SELECT * FROM news ORDER BY news_id DESC LIMIT 3')
         return await result.fetchall()
 
 

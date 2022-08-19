@@ -585,6 +585,29 @@ async def load_description_news(message:types.Message,state: FSMContext):
         await message.answer('Новость добавлена!')
         await state.finish()
 
+async def edit_news(message:types.Message):
+    """
+    Функция для запуска обработки новостей
+    """
+    if message.from_user.id == ID:
+        # Получаем из таблицы данные новости. Так для пользователя отображется последние 3 новости, то и редактировать имеет смысл только те новости
+        # которые показываются пользователю
+        news = await sqlite_db.sql_read_news()
+
+        for row in news:
+            #Создаем клавиатуру
+            inline_kb_admin_news = InlineKeyboardMarkup().add(
+                InlineKeyboardButton(f'Редактировать новость', callback_data=f'edit_news {row[0]}')).add(
+                InlineKeyboardButton(f'Удалить новость', callback_data=f'del_news {row[0]}'))
+            # Отправляем список новостей
+            await bot.send_message(message.from_user.id,f'{row[2]}')
+            await bot.send_message(message.from_user.id,text='Нажмите нужную кнопку',
+                                   reply_markup=inline_kb_admin_news)
+
+
+
+
+
 async def general_report(message:types.Message):
     """
     Функция для получения общей таблицы курсов и общей таблицы заявок
@@ -660,6 +683,9 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_news,commands=['Создать_новость'])
     dp.register_message_handler(load_img_news,content_types=['photo'], state=FSMLoadNews.img_news)
     dp.register_message_handler(load_description_news,state=FSMLoadNews.description_news)
+
+    # Хэндлеры редактирования новостей
+    dp.register_message_handler(edit_news,commands=['Редактировать_новости'])
 
 
     dp.register_message_handler(general_report,commands=['Общая_отчетность'])

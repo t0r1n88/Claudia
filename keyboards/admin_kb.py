@@ -1,6 +1,5 @@
 # Кнопки клавиатуры админа
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-
 # Создаем кнопки
 btn_load_course = KeyboardButton('/Загрузить')
 btn_edit_course = KeyboardButton('/Редактировать')
@@ -19,4 +18,7 @@ kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_load_course)
 btn_share_location = KeyboardButton('Отправить локацию мероприятия', request_location=True)
 kb_admin_event_location = ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
 kb_admin_event_location.add(btn_share_location)
+
+
+
 
