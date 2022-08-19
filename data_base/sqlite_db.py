@@ -271,7 +271,13 @@ async def sql_edit_news(state):
 
         await db.commit()
 
-
+async def sql_delete_news(news_id):
+    """
+    Функция для удаления новости
+    """
+    async with aiosqlite.connect('copp.db') as db:
+        await db.execute('DELETE FROM news WHERE news_id == ?',(news_id,))
+        await db.commit()
 
 
 

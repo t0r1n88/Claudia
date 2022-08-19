@@ -224,7 +224,7 @@ async def hide_course_callback_run(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('show '))
 async def show_course_callback_run(callback_query: types.CallbackQuery):
     id_course = callback_query.data.replace('show ', '')
-    # Отправляем строку вида del название курса в функцию для удаления из базы данных.Передтэтим очищаем от del
+
     await sqlite_db.sql_show_course(id_course)
     await callback_query.answer(f'Курс отображается', show_alert=True)
     await callback_query.answer()
@@ -613,6 +613,20 @@ async def edit_news(message:types.Message):
             await bot.send_message(message.from_user.id,f'{row[2]}')
             await bot.send_message(message.from_user.id,text='Нажмите нужную кнопку',
                                    reply_markup=inline_kb_admin_news)
+
+#Обработчик для удаления новостей
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('del_news'))
+async def delete_news_callback_run(callback_query: types.CallbackQuery):
+    """
+    Функция для удаления новости
+    """
+
+    # если проверка на флуд пройдена то начинаем работу
+    # Получаем айди нужного мероприятия
+    id_news = callback_query.data.replace('del_news ', '')
+    await sqlite_db.sql_delete_news(id_news)
+    await bot.send_message(callback_query.from_user.id, f'Новость удалена!')
+    await callback_query.answer('Новость удалена', show_alert=True)
 
 # Обработчик для редактирования новостей
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith('edit_news'))
