@@ -258,6 +258,18 @@ async def sql_read_news():
         result = await db.execute('SELECT * FROM news ORDER BY news_id DESC LIMIT 3')
         return await result.fetchall()
 
+async def sql_edit_news(state):
+    """
+    Функция для редактирования записи о новости
+    """
+    async with state.proxy() as data:
+        result = tuple(data.values())
+        # Вставляем данные в таблицу
+    async with aiosqlite.connect('copp.db') as db:
+        await db.execute('UPDATE news SET img == ?,description_news=?,date_news == ? WHERE news_id == ?'
+                         ,[result[1],result[2],result[3],result[0]])
+
+        await db.commit()
 
 
 

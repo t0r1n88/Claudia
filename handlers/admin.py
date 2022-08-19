@@ -68,9 +68,19 @@ class FSMReportAdmin(StatesGroup):
 class FSMLoadNews(StatesGroup):
     """
     Класс в котором хранятся шаги машины состояний создания новости
-    """
+        """
     img_news = State()
     description_news = State()
+
+class FSMEditNews(StatesGroup):
+    """
+    Класс в котором хранятся шаги машины состояний для редактирования новости
+    Пришлось его сделать поскольку для редактирования мне нужно где то хранить айди новости а в классе загрузки новости такое делать смысла нет
+    """
+    id_news = State()
+    img_news = State()
+    description_news = State()
+
 
 # проверяем пользователя на права администратора в группе
 # @dp.message_handler(commands=['admin'],is_chat_admin=True)
@@ -597,13 +607,50 @@ async def edit_news(message:types.Message):
         for row in news:
             #Создаем клавиатуру
             inline_kb_admin_news = InlineKeyboardMarkup().add(
-                InlineKeyboardButton(f'Редактировать новость', callback_data=f'edit_news {row[0]}')).add(
+                InlineKeyboardButton(f'Редактировать новость', callback_data=f'edit_news {row[0]} ')).add(
                 InlineKeyboardButton(f'Удалить новость', callback_data=f'del_news {row[0]}'))
             # Отправляем список новостей
             await bot.send_message(message.from_user.id,f'{row[2]}')
             await bot.send_message(message.from_user.id,text='Нажмите нужную кнопку',
                                    reply_markup=inline_kb_admin_news)
 
+# Обработчик для редактирования новостей
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith('edit_news'))
+async def edit_news_callback_run(callback_query: types.CallbackQuery,state=FSMContext):
+    # Получаем айди нужной новости
+    id_news = callback_query.data.replace('edit_news ', '')
+    if callback_query.from_user.id == ID:
+        # Переводим машину состояний в первую стадию загрузка айди новости
+        await FSMEditNews.id_news.set()
+        async with state.proxy() as data:
+            data['news_id'] = id_news
+        await FSMEditNews.next()
+        await callback_query.message.reply(
+            'Загрузите фото новости\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
+async def edit_photo_news(message: types.Message, state: FSMContext):
+    # Если айди пользователя равно айди полученному через функцию make_changes_command, то запускаем машину состояний
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            # Через контекстный менеджер получаем записываем в словарь  айди загруженной картинки
+            data['img_news'] = message.photo[0].file_id
+            # Переводим машину состояний в следующую фазу
+        await FSMEditNews.next()
+        # Сообщаем пользователю что нужно ввести название курса
+        await message.reply('Введите краткое описание новости вместе с ссылкой на исходный сайт\nЧтобы прекратить редактирование напишите в чат слово стоп')
+
+async def edit_description_news(message:types.Message,state:FSMContext):
+    """
+    Функция для редактирования описания новости
+    """
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            data['description_news'] = message.text
+            data['date_news'] = message.date
+        # Отправляем запрос в базу данных
+        await sqlite_db.sql_edit_news(state)
+        await message.answer('Новость отредактирована!')
+        await state.finish()
 
 
 
@@ -681,11 +728,13 @@ def register_handlers_admin(dp: Dispatcher):
 
     # Хэндлеры машины состояний создания новости
     dp.register_message_handler(load_news,commands=['Создать_новость'])
-    dp.register_message_handler(load_img_news,content_types=['photo'], state=FSMLoadNews.img_news)
-    dp.register_message_handler(load_description_news,state=FSMLoadNews.description_news)
+    dp.register_message_handler(load_img_news, content_types=['photo'], state=FSMLoadNews.img_news)
+    dp.register_message_handler(load_description_news, state=FSMLoadNews.description_news)
 
     # Хэндлеры редактирования новостей
     dp.register_message_handler(edit_news,commands=['Редактировать_новости'])
+    dp.register_message_handler(edit_photo_news,content_types=['photo'],state=FSMEditNews.img_news)
+    dp.register_message_handler(edit_description_news,state=FSMEditNews.description_news)
 
 
     dp.register_message_handler(general_report,commands=['Общая_отчетность'])
