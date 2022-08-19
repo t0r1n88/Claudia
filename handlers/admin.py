@@ -283,6 +283,8 @@ async def report_event(message:types.Message):
                                      f'{course[2]}\nОписание курса: {course[3]}\n Условия записи на курс: {course[4]}')
                 # Отправляем инлайн кнопку вместе с сообщением
                 await bot.send_message(message.from_user.id, text='Нажмите нужную кнопку', reply_markup=inline_stat_kb)
+            else:
+                await bot.send_message(message.from_user.id,text='Отсутствуют мероприятия для которых можно создать отчетность')
 
 # Декоратор для ответа на  команду получения таблицы записавшихся на мероприятие
 # Более понятное объяснение https://youtu.be/gpCIfQUbYlY?list=PLNi5HdK6QEmX1OpHj0wvf8Z28NYoV5sBJ

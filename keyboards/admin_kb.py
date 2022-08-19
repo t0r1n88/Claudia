@@ -3,14 +3,19 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 # Создаем кнопки
 btn_load_course = KeyboardButton('/Загрузить')
 btn_edit_course = KeyboardButton('/Редактировать')
+btn_courses = [btn_load_course,btn_edit_course]
+
 btn_create_news = KeyboardButton('/Создать_новость')
 btn_edit_news = KeyboardButton('/Редактировать_новости')
+btn_news = [btn_create_news,btn_edit_news]
+
 btn_stat = KeyboardButton('/Отчетность')
 btn_stop = KeyboardButton('/Стоп')
 btb_general_report = KeyboardButton('/Общая_отчетность')
 
 # Создаем клавиатуру основного меню администратора
-kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_load_course).add(btn_edit_course).add(btn_create_news).add(btn_edit_news).add(btn_stat).add(btb_general_report)
+# kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(btn_load_course).add(btn_edit_course).add(btn_create_news).add(btn_edit_news).add(btn_stat).add(btb_general_report)
+kb_admin_course = ReplyKeyboardMarkup(resize_keyboard=True).add(*btn_courses).add(*btn_news).add(btn_stat).add(btb_general_report)
 
 
 # Создаем клавиатуру отправки локации
