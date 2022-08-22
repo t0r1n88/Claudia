@@ -4,9 +4,6 @@
 call %~dp0venv\Scripts\activate
 
 
-:: Создаем переменную среды окружения
-set TOKEN=5549256746:AAHQ8_nqbihLpEkVN20zNro4I92c_JUr_9k
-
 ::Запускаем скрипт
 python application_to_study_telegram_bot.py
 

@@ -4,6 +4,8 @@ from aiogram.dispatcher import Dispatcher
 import os
 import asyncio
 import logging
+from config import TOKEN
+
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -17,7 +19,8 @@ loop = asyncio.get_event_loop()
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 # Инициализируем объект хранилища
 storage = MemoryStorage()
-# Инициализируем бота получая токен из переменной окружения
-bot = Bot(token=os.getenv('TOKEN'),loop=loop)
+# Инициализируем бота получаtv получем токен из файла конфигурации
+# bot = Bot(token=os.getenv('TOKEN'),loop=loop)
+bot = Bot(token=TOKEN,loop=loop)
 # Инициализируем диспетчер
 dp = Dispatcher(bot,storage=storage)
