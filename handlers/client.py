@@ -127,7 +127,7 @@ async def news_menu(message:types.Message):
         # Отправляем пользователю новости
         # Формируем сообщение пользователю. Отправляем данные из таблицы
         # row[1] это айди картинки на сервере телеграмма
-        for row in news:
+        for row in reversed(news):
             await bot.send_photo(message.from_user.id, row[1],
                                  f'{row[2]}')
 
